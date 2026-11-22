@@ -1,0 +1,1319 @@
+<title>Teardown Garage</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: shop-manual workspace. Sticky header with tabs; 3D stage + spec panel side by side, stacking on phones. */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --panel2:#f5f7f9; --ink:#16202a; --muted:#566473; --line:#d3dae1;
+  --accent:#c96f1c; --accent-soft:#f6e3cf; --accent-ink:#ffffff; --blue:#2c6a98; --blue-soft:#dcebf6;
+  --stage:#dde3e9; --grid1:#97a6b4; --grid2:#c3ccd5;
+  --ok:#2c8553; --warn:#a86f12; --bad:#b83a2c;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151a; --panel:#172028; --panel2:#1c2630; --ink:#e3e8ed; --muted:#93a1ae; --line:#29343f;
+  --accent:#f0a04b; --accent-soft:#3a2a18; --accent-ink:#1a1206; --blue:#6aa9d6; --blue-soft:#172c3c;
+  --stage:#0c1115; --grid1:#3a4855; --grid2:#1f2932;
+  --ok:#4fbf80; --warn:#e0a63d; --bad:#ef6b5b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151a; --panel:#172028; --panel2:#1c2630; --ink:#e3e8ed; --muted:#93a1ae; --line:#29343f;
+  --accent:#f0a04b; --accent-soft:#3a2a18; --accent-ink:#1a1206; --blue:#6aa9d6; --blue-soft:#172c3c;
+  --stage:#0c1115; --grid1:#3a4855; --grid2:#1f2932;
+  --ok:#4fbf80; --warn:#e0a63d; --bad:#ef6b5b; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+h1,h2,h3,h4{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;line-height:1.1;text-wrap:balance;margin:0}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
+.hwrap{display:flex;align-items:center;gap:20px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-size:26px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.brand h1 span{color:var(--accent)}
+.brand small{color:var(--muted);font-size:12px;font-family:var(--f-mono)}
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;max-width:100%}
+nav a{font-family:var(--f-display);font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:4px;white-space:nowrap}
+nav a:hover{color:var(--ink);background:var(--panel2)}
+nav a[aria-current="page"]{color:var(--accent-ink);background:var(--accent)}
+
+main{padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1500px;margin:0 auto}
+.view-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.view-head h2{font-size:34px;text-transform:uppercase}
+.view-head p{color:var(--muted);max-width:68ch}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+
+/* workspace */
+.ws{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
+.stage{position:relative;height:clamp(380px,72vh,780px);border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--stage)}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.stage .hint{position:absolute;left:12px;bottom:10px;font-family:var(--f-mono);font-size:11px;color:var(--muted);pointer-events:none}
+.stage .err{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0;max-height:clamp(380px,72vh,780px);overflow:auto}
+.panel h3{font-size:22px}
+.ctl-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel2);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.on,.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+label.slider{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.08em}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:transparent;padding:3px 9px;border-radius:999px;font-size:12.5px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip.sel{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.sys{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);background:var(--blue-soft);padding:2px 7px;border-radius:3px;display:inline-block}
+.info h4{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:12px;margin-bottom:3px}
+.info p,.info li{font-size:14px}
+.info ul{margin:0;padding-left:18px}
+.empty{color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:6px;padding:14px}
+.tip{position:fixed;pointer-events:none;z-index:20;background:var(--ink);color:var(--bg);font-size:12px;padding:4px 8px;border-radius:4px;font-family:var(--f-mono);transform:translate(12px,12px)}
+
+/* build timeline */
+.steps{display:flex;flex-direction:column;gap:2px}
+.step{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center;text-align:left;border:0;background:transparent;padding:5px 6px;border-radius:4px;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.step .n{font-family:var(--f-mono);font-size:11px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line)}
+.step.done{color:var(--ink)}
+.step.done .n{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+.step.cur{background:var(--accent-soft);color:var(--ink)}
+.step.cur .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px}
+.kv dt{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding-top:2px}
+.kv dd{margin:0}
+
+/* two-column docs (maintenance, welding) */
+.docs{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 100px);overflow:auto}
+.side input[type=search]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);color:var(--ink);font:inherit;font-size:14px}
+.side .cat{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;border:0;background:transparent;padding:7px 8px;border-radius:4px;cursor:pointer;font-size:14px}
+.item:hover{background:var(--panel2)}
+.item.sel{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.diff{display:inline-flex;gap:2px}
+.diff i{width:6px;height:12px;border-radius:1px;background:var(--line)}
+.diff i.f{background:var(--accent)}
+.doc{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:22px 26px;min-width:0}
+.doc h2{font-size:32px;text-transform:uppercase}
+.doc h3{font-size:22px;margin-top:22px;margin-bottom:8px}
+.doc p,.doc li{max-width:72ch}
+.doc p+p{margin-top:8px}
+.meta{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 4px;font-size:13px;color:var(--muted)}
+.meta b{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:14px}
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.box h4{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:500}
+.box ul{margin:0;padding-left:18px;font-size:14px}
+.box.danger{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));background:color-mix(in srgb,var(--bad) 7%,var(--panel2))}
+.box.danger h4{color:var(--bad)}
+ol.check{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px;counter-reset:s}
+ol.check li{counter-increment:s;display:grid;grid-template-columns:26px 30px 1fr;gap:6px;align-items:start;padding:8px 6px;border-radius:4px;max-width:none}
+ol.check li:hover{background:var(--panel2)}
+ol.check li::before{content:counter(s);font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px;text-align:right}
+ol.check input{width:18px;height:18px;accent-color:var(--ok);margin-top:2px}
+ol.check li.done span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--ok);transition:width .3s}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.tbl{overflow-x:auto;margin-top:8px}
+.callout{border-left:3px solid var(--blue);background:var(--blue-soft);padding:10px 14px;border-radius:0 6px 6px 0;margin-top:12px;font-size:14px}
+.quiz{margin-top:24px;border-top:1px solid var(--line);padding-top:16px}
+.q{margin-top:14px}
+.q p{font-weight:600}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--panel2);padding:8px 12px;border-radius:4px;cursor:pointer;font-size:14px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel2))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel2))}
+.why{font-size:13.5px;color:var(--muted);margin-top:6px}
+.badge{font-family:var(--f-mono);font-size:10.5px;padding:2px 6px;border-radius:3px;background:var(--ok);color:var(--panel)}
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
+.calc label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.calc select{padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);color:var(--ink);font:inherit}
+.out{font-family:var(--f-mono);font-size:14px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin-top:10px}
+svg text{font-family:var(--f-mono)}
+.svgwrap{overflow-x:auto;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:10px}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:14px}
+.card h4{font-size:19px;margin-bottom:4px}
+.card p{font-size:14px}
+.card .fail{margin-top:8px;font-size:13px;color:var(--muted)}
+.card .fail b{color:var(--bad);font-weight:600}
+.view[hidden]{display:none!important}
+
+@media (max-width:900px){
+  .ws,.docs{grid-template-columns:minmax(0,1fr)}
+  .stage{height:56vh;min-height:320px}
+  .panel{max-height:none}
+  .side{position:static;max-height:none}
+  .doc{padding:18px 16px}
+  .view-head h2{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header>
+  <div class="hwrap">
+    <div class="brand"><h1>Teardown <span>Garage</span></h1><small>engines · builds · upkeep · fab</small></div>
+    <nav id="nav">
+      <a href="#explore">Engine</a>
+      <a href="#build">Build a Car</a>
+      <a href="#maintain">Maintenance</a>
+      <a href="#electrical">Electrical</a>
+      <a href="#weld">Weld &amp; Fab</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ENGINE EXPLORER -->
+  <section class="view" id="v-explore">
+    <div class="view-head">
+      <div><div class="eyebrow">Inline-4 · DOHC · 16-valve</div><h2>Engine Explorer</h2></div>
+      <p>Drag to orbit, scroll or pinch to zoom, right-drag to pan. Pull the slider to tear the engine down in the order a mechanic would. Click any part to read what it does and how it fails.</p>
+    </div>
+    <div class="ws">
+      <div class="stage" id="engStage"><span class="hint">drag · zoom · click a part</span></div>
+      <aside class="panel">
+        <label class="slider" for="explode">Teardown <span class="mono" id="explodeVal">0%</span>
+          <input type="range" id="explode" min="0" max="100" value="0">
+        </label>
+        <div class="ctl-row">
+          <button class="btn" id="btnAssemble">Assemble</button>
+          <button class="btn primary" id="btnExplode">Tear down</button>
+          <button class="btn" id="btnSpin">Auto-rotate</button>
+          <button class="btn" id="btnIsolate" disabled>Isolate part</button>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Parts</div>
+          <div class="chips" id="partChips"></div>
+        </div>
+        <div class="info" id="partInfo"><div class="empty">Select a part on the engine or from the list above. Try the crankshaft first. It's buried in the bottom of the block until you tear the engine down.</div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- BUILD A CAR -->
+  <section class="view" id="v-build" hidden>
+    <div class="view-head">
+      <div><div class="eyebrow">Body-on-frame · front-engine · rear-wheel drive</div><h2>Build a Car</h2></div>
+      <p>Start with a bare ladder frame and bolt on one system at a time. Each step shows what goes on, how it attaches, the tools you'd use, and a tip from the shop floor.</p>
+    </div>
+    <div class="ws">
+      <div class="stage" id="carStage"><span class="hint">drag · zoom · hover parts for names</span></div>
+      <aside class="panel">
+        <div class="ctl-row">
+          <button class="btn" id="bPrev">◀ Back</button>
+          <button class="btn primary" id="bNext">Add next ▶</button>
+          <button class="btn" id="bAll">Build all</button>
+          <button class="btn" id="bReset">Reset</button>
+        </div>
+        <div class="ctl-row">
+          <button class="btn" id="bBody">Body: see-through</button>
+          <button class="btn" id="bSpin">Auto-rotate</button>
+        </div>
+        <div id="stepInfo" class="info"></div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Assembly order</div>
+          <div class="steps" id="stepList"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- MAINTENANCE -->
+  <section class="view" id="v-maintain" hidden>
+    <div class="view-head">
+      <div><div class="eyebrow">Driveway jobs</div><h2>Maintenance Guides</h2></div>
+      <p>Step-by-step jobs most owners can do with hand tools. Tick steps off as you go; your progress is saved in this browser. Always check your owner's manual for exact specs on your car.</p>
+    </div>
+    <div class="docs">
+      <aside class="side" id="mSide"></aside>
+      <article class="doc" id="mDoc"></article>
+    </div>
+  </section>
+
+  <!-- ELECTRICAL -->
+  <section class="view" id="v-electrical" hidden>
+    <div class="view-head">
+      <div><div class="eyebrow">12 V DC · negative ground</div><h2>Electrical &amp; Electronics</h2></div>
+      <p>How power gets made, stored, switched and read by the computer, plus how to test it with a $25 multimeter.</p>
+    </div>
+    <article class="doc" id="eDoc"></article>
+  </section>
+
+  <!-- WELDING -->
+  <section class="view" id="v-weld" hidden>
+    <div class="view-head">
+      <div><div class="eyebrow">7 modules · quizzes</div><h2>Welding &amp; Fabrication</h2></div>
+      <p>From safety gear to your first patch panel. Read each module, then pass its quiz to mark it complete.</p>
+    </div>
+    <div class="docs">
+      <aside class="side" id="wSide"></aside>
+      <article class="doc" id="wDoc"></article>
+    </div>
+  </section>
+</main>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const tip = $("#tip");
+const HAS3D = typeof THREE !== "undefined" && THREE.OrbitControls;
+
+/* ================================================================
+   3D VIEWER (shared by Engine Explorer and Build a Car)
+   ================================================================ */
+const viewers = [];
+function createViewer(host, opt) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  host.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 400);
+  camera.position.set(...opt.cam);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(...opt.target);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.autoRotateSpeed = 1.2;
+  controls.minDistance = opt.minD; controls.maxDistance = opt.maxD;
+  scene.add(new THREE.HemisphereLight(0xe6eef5, 0x3a2e22, 0.85));
+  const key = new THREE.DirectionalLight(0xffffff, 1.05); key.position.set(8, 14, 10); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x9cc7ff, 0.55); rim.position.set(-10, 6, -8); scene.add(rim);
+  const fill = new THREE.DirectionalLight(0xffe2c0, 0.3); fill.position.set(0, -6, 6); scene.add(fill);
+  let grid = null;
+  const v = { host, renderer, scene, camera, controls, tick: null, pickables: [] };
+  v.applyTheme = () => {
+    scene.background = new THREE.Color(cssVar("--stage"));
+    if (grid) { scene.remove(grid); grid.geometry.dispose(); }
+    grid = new THREE.GridHelper(opt.grid[0], opt.grid[1], cssVar("--grid1"), cssVar("--grid2"));
+    grid.position.y = opt.grid[2]; scene.add(grid);
+  };
+  v.applyTheme();
+  const resize = () => {
+    const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  };
+  new ResizeObserver(resize).observe(host); resize();
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  v.pick = ev => {
+    const r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hits = ray.intersectObjects(v.pickables, true);
+    return hits.find(h => h.object.visible && isShown(h.object) && h.object.material.opacity > 0.3);
+  };
+  // hover tooltip + click (ignores drags)
+  let down = null;
+  renderer.domElement.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; });
+  renderer.domElement.addEventListener("pointerup", e => {
+    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5 && v.onClick) v.onClick(v.pick(e));
+    down = null;
+  });
+  renderer.domElement.addEventListener("pointermove", e => {
+    if (e.buttons) { tip.hidden = true; return; }
+    const h = v.pick(e);
+    const label = h && h.object.userData.label;
+    if (label) { tip.textContent = label; tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px"; tip.hidden = false; }
+    else tip.hidden = true;
+  });
+  renderer.domElement.addEventListener("pointerleave", () => { tip.hidden = true; });
+  viewers.push(v);
+  return v;
+}
+function isShown(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+
+// geometry helpers
+const M = (color, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color, metalness: 0.45, roughness: 0.45 }, o));
+function add(g, geo, mat, p = [0, 0, 0], r = [0, 0, 0]) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.rotation.set(...r); g.add(m); return m;
+}
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const cylY = (r, h, s = 28) => new THREE.CylinderGeometry(r, r, h, s);
+const cylX = (r, h, s = 28) => new THREE.CylinderGeometry(r, r, h, s).rotateZ(Math.PI / 2);
+const cylZ = (r, h, s = 28) => new THREE.CylinderGeometry(r, r, h, s).rotateX(Math.PI / 2);
+const tube = (pts, r, closed = false) => new THREE.TubeGeometry(
+  new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), closed), Math.max(24, pts.length * 16), r, 10, closed);
+function helix(p0, p1, rad, turns, wire) {
+  const pts = [], a = new THREE.Vector3(...p0), b = new THREE.Vector3(...p1), n = turns * 16;
+  const axis = b.clone().sub(a), up = Math.abs(axis.clone().normalize().y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+  const u = axis.clone().cross(up).normalize(), w = axis.clone().cross(u).normalize();
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, ang = t * turns * Math.PI * 2;
+    pts.push(a.clone().addScaledVector(axis, t).addScaledVector(u, Math.cos(ang) * rad).addScaledVector(w, Math.sin(ang) * rad));
+  }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n * 2, wire, 6, false);
+}
+
+/* ================================================================
+   ENGINE EXPLORER
+   ================================================================ */
+const ENGINE_INFO = {
+  block: { name: "Engine block", sys: "Bottom end", does: "The foundation of the engine. It holds the cylinders, the coolant passages (the water jacket) and the oil galleries, and carries the crankshaft in its main bearings.", how: "Cast from iron or aluminum. Aluminum blocks use pressed-in iron cylinder liners or a hard coating so the pistons have a durable surface to slide against.", fails: ["Cracks from freezing when there's plain water instead of antifreeze", "Warped deck surface after severe overheating", "Milky, coffee-colored oil = coolant getting into the oil"], care: "Keep a 50/50 coolant mix and never keep driving an overheating engine. Pull over and shut it off." },
+  crank: { name: "Crankshaft", sys: "Bottom end", does: "Turns the pistons' up-and-down motion into rotation. Everything downstream (flywheel, transmission, wheels) is driven by this shaft.", how: "Main journals spin in bearings in the block; offset rod journals (throws) are pushed by the connecting rods. Counterweights balance the throws. On an inline-4, cylinders 1 & 4 move together and 2 & 3 move together; the firing order is usually 1-3-4-2.", fails: ["Deep, rhythmic knock that rises with RPM: a spun bearing from oil starvation", "Low oil pressure light at idle when hot"], care: "Change oil on schedule and keep the level between the dipstick marks. Bearings live on a film of oil thinner than a hair." },
+  pistons: { name: "Pistons & rings", sys: "Bottom end", does: "Form the moving floor of each combustion chamber. Burning fuel pushes them down; that push is the engine's power.", how: "Aluminum pistons carry three rings: a top compression ring, a second compression/scraper ring and an oil-control ring. The rings seal pressure above and scrape oil off the cylinder wall below.", fails: ["Blue-gray exhaust smoke and burning oil between changes: worn rings", "Low compression on one cylinder (measured with a compression gauge)", "Holed or cracked piston from detonation (knock) on too-low octane"], care: "Use the fuel octane the manual calls for, and don't lug the engine at very low RPM under heavy load." },
+  rods: { name: "Connecting rods", sys: "Bottom end", does: "Link each piston to the crankshaft.", how: "The small end holds the wrist pin through the piston; the big end clamps around a crank journal with two bearing shells and rod bolts. Rod bolts stretch when torqued and are often single-use.", fails: ["Rod knock: a sharp knock that comes and goes with throttle", "A thrown rod, which can punch a hole through the block"], care: "Same as the crank: clean oil at the right level. Never over-rev a cold engine." },
+  gasket: { name: "Head gasket", sys: "Top end", does: "Seals the joint between block and head: combustion pressure in the cylinders, coolant passages, and oil passages, all at once.", how: "Modern ones are multi-layer steel (MLS) with embossed beads that crush to seal. The head bolts clamp it at a precise torque, often torque-to-yield (stretch bolts that must be replaced).", fails: ["White, sweet-smelling exhaust smoke (burning coolant)", "Coolant disappearing with no visible leak", "Bubbles in the coolant reservoir, overheating, milky oil"], care: "A blown head gasket is almost always caused by overheating. Watch the temperature gauge." },
+  head: { name: "Cylinder head", sys: "Top end", does: "Caps the cylinders and contains the combustion chambers, intake and exhaust ports, valves and springs, and on this DOHC engine, both camshafts.", how: "Each cylinder has 4 valves (2 intake, 2 exhaust): 16 valves total. Valves are pushed open by the cams and snapped shut by springs, timed to the piston strokes: intake, compression, power, exhaust.", fails: ["Warped head from overheating (checked with a straightedge)", "Burnt exhaust valve: steady misfire on one cylinder, low compression", "Ticking from worn valve-train parts or low oil"], care: "Avoid overheating, and adjust valve lash on engines with shim/screw adjusters per the schedule." },
+  cams: { name: "Camshafts", sys: "Top end", does: "Open and close the valves at exactly the right moments.", how: "Egg-shaped lobes press on followers to open valves. Cams turn at half crankshaft speed (one intake event per two crank revolutions). DOHC = one cam for intake valves, one for exhaust. Many engines add variable valve timing (VVT) to shift cam timing with oil pressure.", fails: ["Worn lobes from poor oil, causing ticking and power loss", "VVT codes (P0011, P0014) often caused by low or dirty oil"], care: "Oil changes again. VVT systems are especially sensitive to sludge." },
+  cover: { name: "Valve cover", sys: "Top end", does: "Seals the top of the head, keeping oil in and dirt out. Holds the oil fill cap and often the PCV valve.", how: "Aluminum, magnesium or plastic, sealed with a rubber gasket and spark-plug tube seals.", fails: ["Oil seeping down the sides of the head", "Burning-oil smell when oil drips onto the exhaust manifold", "Oil pooling in spark-plug wells, causing misfires"], care: "Valve cover gaskets are a cheap, beginner-friendly DIY. Torque the bolts lightly in sequence; overtightening squashes the gasket." },
+  coils: { name: "Ignition coils", sys: "Ignition", does: "Step 12 volts up to roughly 20,000–45,000 volts to fire the spark plugs.", how: "Coil-on-plug design: one coil per cylinder sitting right on top of the plug. The ECU switches the coil's primary circuit off; the collapsing magnetic field induces high voltage in the secondary winding.", fails: ["Misfire on one cylinder (codes P0301–P0304)", "Flashing check-engine light under load"], care: "Diagnosis trick: swap the suspect coil with a neighbor. If the misfire code moves cylinders, the coil is bad." },
+  plugs: { name: "Spark plugs", sys: "Ignition", does: "Make the spark that lights the air-fuel mixture.", how: "High voltage jumps the gap between center and ground electrodes (typically 0.028–0.044 in / 0.7–1.1 mm). The heat range is matched to the engine.", fails: ["Rough idle, hesitation and worse fuel economy as electrodes wear", "Hard starting", "Oily, black or white deposits tell you about engine condition"], care: "Copper plugs about every 30k miles; iridium or platinum 60k–100k miles. Change them only with a cold engine (aluminum head threads)." },
+  intake: { name: "Intake manifold", sys: "Air & fuel", does: "Distributes air from the throttle body evenly to each cylinder's intake port.", how: "A central plenum feeds individual runners. Runner length is tuned: longer runners favor low-RPM torque, shorter ones favor high-RPM power.", fails: ["Vacuum leak from a cracked gasket or hose: high idle, hissing, lean codes P0171/P0174"], care: "Listen for hissing at idle. A spray bottle of soapy water helps find leaks safely." },
+  throttle: { name: "Throttle body", sys: "Air & fuel", does: "Controls how much air the engine breathes, which sets how much power it makes.", how: "A butterfly valve. Modern cars are drive-by-wire: the gas pedal is a sensor, and the ECU drives a small electric motor that opens the valve. A throttle position sensor (TPS) reports the angle.", fails: ["Rough or low idle, stalling when coming to a stop (carbon buildup)", "Reduced-power / limp mode from a sensor fault"], care: "Cleaning with throttle body cleaner on a rag fixes many idle problems. With the key off, don't force a drive-by-wire plate." },
+  fuelrail: { name: "Fuel rail & injectors", sys: "Air & fuel", does: "Deliver precisely metered fuel to each cylinder.", how: "The rail holds pressurized fuel (about 40–60 psi for port injection; direct injection runs 500–3,000+ psi). The ECU opens each injector for a few milliseconds; that pulse width sets how much fuel goes in.", fails: ["Clogged injector: misfire, lean code on one cylinder", "Leaking injector: fuel smell, hard hot starts"], care: "Quality fuel. Relieve fuel pressure before opening any fuel fitting, and leave direct-injection high-pressure lines to pros." },
+  exhaust: { name: "Exhaust manifold", sys: "Exhaust", does: "Collects hot exhaust from each cylinder and routes it to the downpipe and catalytic converter.", how: "Cast iron or welded stainless tubes (a header). It often holds the upstream oxygen sensor.", fails: ["Ticking noise that is loudest when cold: a cracked manifold or blown gasket", "Exhaust smell in the cabin", "Seized or snapped studs"], care: "Soak studs in penetrating oil for a day before removal, and never work on it hot. It reaches 1,000°F+." },
+  timing: { name: "Timing belt & sprockets", sys: "Timing", does: "Keeps the camshafts locked in step with the crankshaft so valves open at exactly the right point in each piston stroke.", how: "A toothed belt (or chain) wraps the crank sprocket, both cam sprockets and a tensioner. The cam sprockets are twice the size of the crank sprocket, which is why the cams turn at half speed.", fails: ["Belt: often no warning; it snaps. On an interference engine, pistons then hit open valves (bent valves, big bill)", "Chain: rattle for a few seconds on cold start as guides and tensioner wear"], care: "Replace timing belts on schedule (often 60k–105k miles or 7–10 years). Replace the water pump and tensioner at the same time." },
+  waterpump: { name: "Water pump", sys: "Cooling", does: "Circulates coolant through the block, head, radiator and heater core.", how: "A belt-driven impeller spins in a housing. Some newer engines use an electric pump.", fails: ["Coolant drip from the small weep hole", "Whining or grinding bearing", "Overheating"], care: "If it's driven by the timing belt, replace it with the belt. You're already 90% of the way there." },
+  alternator: { name: "Alternator", sys: "Electrical", does: "Generates electricity while the engine runs, recharging the battery and powering everything electrical.", how: "Belt-driven. A spinning electromagnet (rotor) inside copper windings (stator) makes AC, diodes rectify it to DC, and a regulator holds output around 13.5–14.7 V.", fails: ["Battery warning light on the dash", "Dim or flickering lights, dead battery", "Whining that rises with RPM"], care: "Test with a multimeter: 13.5–14.7 V across the battery with the engine running means it's charging." },
+  flywheel: { name: "Flywheel", sys: "Drivetrain", does: "Smooths out the power pulses from each cylinder firing, gives the starter something to turn, and (on manuals) is the friction surface for the clutch.", how: "A heavy steel disc bolted to the crank, with a toothed ring gear around its edge. Automatic transmissions use a thin flexplate plus a torque converter instead.", fails: ["Grinding when starting (worn ring gear teeth)", "Clutch chatter or slipping from a glazed or hot-spotted surface"], care: "Resurface or replace the flywheel when you do a clutch job." },
+  starter: { name: "Starter motor", sys: "Electrical", does: "Spins the engine to get it started.", how: "A powerful DC motor drawing 100–200+ amps. Its solenoid shoves a small pinion gear into the flywheel's ring gear, then closes the heavy-current contacts.", fails: ["Single click, no crank (also check the battery and cable ends first)", "Grinding, or it keeps whirring after the engine starts"], care: "Most no-crank problems are a weak battery or corroded cables. Test those before buying a starter." },
+  oilfilter: { name: "Oil filter", sys: "Lubrication", does: "Traps metal particles, carbon and dirt so they don't circulate through the bearings.", how: "Pleated media inside a canister. An anti-drainback valve keeps oil in the filter when the engine's off, and a bypass valve lets oil through if the filter clogs.", fails: ["A clogged filter goes into bypass, so dirty oil circulates", "Double gasket (the old one stuck on) causes a sudden massive leak"], care: "Replace with every oil change. Oil the new gasket, then hand-tighten about ¾ turn past contact." },
+  oilpan: { name: "Oil pan", sys: "Lubrication", does: "The oil reservoir at the bottom of the engine.", how: "The oil pump sucks oil through a pickup tube with a screen, sends it through the filter and into galleries feeding the bearings, cams and VVT, and it drains back down here. The drain plug is at the low point.", fails: ["Stripped drain plug threads from overtightening", "Leaking pan gasket", "Dented pan from road debris"], care: "Use a new crush washer on the drain plug every change and torque to spec (often around 25 ft-lb). Don't lean on it with a long breaker bar." }
+};
+
+// How a part moves as the teardown slider goes 0 -> 1.
+// Returns 0 (installed) ... 1 (fully pulled out). part.stage 0 = removed first.
+// Try changing this: e.g. make every part move at once, or add a "lift then slide" path.
+function explodeProgress(part, t, maxStage) {
+  const share = 0.45;                                   // slice of the slider each stage uses
+  const start = (part.stage / maxStage) * (1 - share);  // later stages start later
+  const p = Math.min(1, Math.max(0, (t - start) / share));
+  return p * p * (3 - 2 * p);                           // smoothstep easing
+}
+
+const ENG = { parts: [], t: 0, target: 0, sel: null, isolate: false, maxStage: 6, focus: null };
+function buildEngine(v) {
+  const X = [-1.35, -0.45, 0.45, 1.35], S = [1, -1, -1, 1], CY = -0.9, THROW = 0.35;
+  const alu = () => M(0xb7bec6, { metalness: 0.55, roughness: 0.38 });
+  const iron = () => M(0x737a82, { metalness: 0.55, roughness: 0.55 });
+  const steel = () => M(0xa3acb5, { metalness: 0.8, roughness: 0.28 });
+  const dark = () => M(0x24272b, { metalness: 0.2, roughness: 0.7 });
+  const rubber = () => M(0x141516, { metalness: 0, roughness: 0.9 });
+  function part(id, stage, dir, build) {
+    const g = new THREE.Group(); build(g); v.scene.add(g);
+    g.traverse(o => { if (o.isMesh) { o.userData.partId = id; o.userData.label = ENGINE_INFO[id].name; } });
+    v.pickables.push(g);
+    ENG.parts.push({ id, stage, dir: new THREE.Vector3(...dir), group: g });
+  }
+  part("block", 0, [0, 0, 0], g => {
+    add(g, box(4.0, 2.4, 2.2), alu());
+    X.forEach(x => add(g, cylY(0.42, 0.02), dark(), [x, 1.205, 0]));
+    add(g, box(0.1, 1.6, 1.6), alu(), [-2.03, -0.2, 0]);           // front cover face
+    for (let i = 0; i < 5; i++) add(g, box(0.08, 0.5, 0.25), alu(), [-1.8 + i * 0.9, 0.2, 1.15]); // ribs
+  });
+  part("oilpan", 2, [0, -3.2, 0], g => {
+    add(g, box(3.8, 0.7, 2.0), iron(), [0, -1.55, 0]);
+    add(g, cylY(0.1, 0.08), steel(), [1.2, -1.94, 0.3]);
+  });
+  part("crank", 6, [0, -1.6, 3.4], g => {
+    add(g, cylX(0.16, 4.6), steel(), [0, CY, 0]);
+    X.forEach((x, i) => {
+      const s = S[i];
+      add(g, cylX(0.14, 0.26), steel(), [x, CY + THROW * s, 0]);
+      [-0.19, 0.19].forEach(dx => add(g, box(0.12, 0.95, 0.55), iron(), [x + dx, CY + 0.12 * s, 0]));
+    });
+    add(g, cylX(0.3, 0.16), steel(), [-2.45, CY, 0]);
+  });
+  part("pistons", 5, [0, 0.4, -3.6], g => {
+    X.forEach((x, i) => {
+      const y = S[i] > 0 ? 0.75 : 0.05;
+      add(g, cylY(0.4, 0.45), alu(), [x, y, 0]);
+      [0.15, 0.08, 0.0].forEach(dy => add(g, new THREE.TorusGeometry(0.4, 0.014, 6, 32), dark(), [x, y + dy, 0], [Math.PI / 2, 0, 0]));
+    });
+  });
+  part("rods", 5, [0, -0.6, -3.6], g => {
+    X.forEach((x, i) => {
+      const py = S[i] > 0 ? 0.75 : 0.05, cy = CY + THROW * S[i];
+      add(g, box(0.13, py - cy, 0.12), steel(), [x, (py + cy) / 2, 0]);
+      add(g, cylX(0.2, 0.18), steel(), [x, cy, 0]);
+    });
+  });
+  part("gasket", 4, [0, 2.4, 0], g => add(g, box(4.0, 0.04, 2.2), M(0xb87333, { metalness: 0.7, roughness: 0.35 }), [0, 1.22, 0]));
+  part("head", 3, [0, 3.6, 0], g => {
+    add(g, box(4.0, 0.9, 2.2), alu(), [0, 1.69, 0]);
+    X.forEach(x => { add(g, box(0.5, 0.35, 0.05), dark(), [x, 1.6, 1.11]); add(g, box(0.5, 0.35, 0.05), dark(), [x, 1.6, -1.11]); });
+  });
+  part("cams", 2, [0, 5.6, 0], g => {
+    [0.45, -0.45].forEach(z => {
+      add(g, cylX(0.09, 4.2), steel(), [0, 2.3, z]);
+      X.forEach(x => [-0.13, 0.13].forEach(dx => add(g, box(0.1, 0.3, 0.22), steel(), [x + dx, 2.33, z], [0.6, 0, 0])));
+    });
+  });
+  part("cover", 1, [0, 7.0, 0], g => {
+    add(g, box(3.9, 0.5, 2.0), M(0x8e2b22, { metalness: 0.35, roughness: 0.5 }), [0, 2.4, 0]);
+    add(g, cylY(0.16, 0.12), dark(), [1.4, 2.7, 0.55]);
+    ["", ""].forEach((_, i) => add(g, box(3.4, 0.06, 0.06), M(0x6e2019), [0, 2.66, i ? 0.7 : -0.7]));
+  });
+  part("coils", 0, [0, 8.6, 0], g => X.forEach(x => {
+    add(g, box(0.28, 0.5, 0.3), dark(), [x, 2.9, 0]);
+    add(g, box(0.18, 0.12, 0.2), M(0x3a3f45), [x, 3.17, 0.12]);
+  }));
+  part("plugs", 1, [0, 7.8, 1.2], g => X.forEach(x => {
+    add(g, cylY(0.055, 0.35), M(0xf0ede6, { metalness: 0, roughness: 0.3 }), [x, 2.45, 0]);
+    add(g, cylY(0.08, 0.14, 6), steel(), [x, 2.22, 0]);
+    add(g, cylY(0.04, 0.22), steel(), [x, 2.04, 0]);
+  }));
+  part("intake", 1, [0, 1.2, 4.2], g => {
+    const m = M(0x2d3237, { metalness: 0.3, roughness: 0.55 });
+    add(g, cylX(0.38, 3.8), m, [0, 1.0, 2.25]);
+    X.forEach(x => add(g, tube([[x, 1.7, 1.08], [x, 1.85, 1.6], [x, 1.55, 2.1], [x, 1.05, 2.25]], 0.15), m));
+  });
+  part("throttle", 1, [2.4, 1.2, 4.6], g => {
+    add(g, cylX(0.3, 0.36), alu(), [2.1, 1.0, 2.25]);
+    add(g, box(0.2, 0.25, 0.2), dark(), [2.1, 1.3, 2.4]);
+  });
+  part("fuelrail", 1, [0, 2.8, 2.6], g => {
+    add(g, cylX(0.07, 3.6), steel(), [0, 2.02, 1.38]);
+    X.forEach(x => { add(g, cylY(0.07, 0.32), M(0x2a5a8a, { metalness: 0.3 }), [x, 1.82, 1.32]); });
+  });
+  part("exhaust", 1, [0, 1.6, -5.2], g => {
+    const m = M(0x6b4a3a, { metalness: 0.6, roughness: 0.65 });
+    X.forEach(x => add(g, tube([[x, 1.6, -1.1], [x, 1.55, -1.55], [x * 0.5 + 0.15, 1.0, -1.95], [0.3, 0.3, -2.0]], 0.15), m));
+    add(g, tube([[0.3, 0.35, -2.0], [0.3, -0.6, -2.05], [0.3, -1.2, -2.0]], 0.2), m);
+  });
+  part("timing", 2, [-3.4, 0, 0], g => {
+    const xT = -2.2;
+    add(g, cylX(0.28, 0.12), steel(), [xT, CY, 0]);
+    [0.45, -0.45].forEach(z => add(g, cylX(0.5, 0.12), steel(), [xT, 2.3, z]));
+    add(g, cylX(0.17, 0.14), steel(), [xT, 0.6, -0.72]);
+    add(g, tube([[xT, CY - 0.3, 0], [xT, CY, 0.3], [xT, 2.3, 0.97], [xT, 2.82, 0.45], [xT, 2.82, -0.45], [xT, 2.3, -0.97], [xT, 0.6, -0.9], [xT, CY, -0.3]], 0.045, true), rubber());
+  });
+  part("waterpump", 2, [-4.6, 0.3, 1.4], g => {
+    add(g, cylX(0.3, 0.3), alu(), [-2.25, 0.15, 0.85]);
+    add(g, cylX(0.22, 0.06), steel(), [-2.45, 0.15, 0.85]);
+  });
+  part("alternator", 1, [-2.4, -0.8, 4.0], g => {
+    add(g, cylX(0.38, 0.6), alu(), [-1.6, -0.15, 1.65]);
+    add(g, cylX(0.16, 0.12), steel(), [-2.0, -0.15, 1.65]);
+    for (let i = 0; i < 8; i++) add(g, box(0.62, 0.04, 0.05), dark(), [-1.6, -0.15 + 0.38 * Math.cos(i * Math.PI / 4), 1.65 + 0.38 * Math.sin(i * Math.PI / 4)]);
+  });
+  part("flywheel", 2, [3.6, 0, 0], g => {
+    add(g, cylX(1.05, 0.12, 48), steel(), [2.15, CY, 0]);
+    add(g, new THREE.TorusGeometry(1.05, 0.05, 8, 64), dark(), [2.15, CY, 0], [0, Math.PI / 2, 0]);
+  });
+  part("starter", 1, [4.4, -1.0, -2.2], g => {
+    add(g, cylX(0.22, 0.8), dark(), [2.6, -1.35, -1.25]);
+    add(g, cylX(0.12, 0.5), steel(), [2.55, -1.05, -1.25]);
+  });
+  part("oilfilter", 1, [1.2, -0.5, 3.6], g => {
+    add(g, cylZ(0.22, 0.45), M(0xc96f1c, { metalness: 0.2, roughness: 0.4 }), [0.8, -0.55, 1.33]);
+  });
+  v.onClick = h => selectEnginePart(h ? h.object.userData.partId : null);
+}
+
+function selectEnginePart(id) {
+  ENG.sel = id;
+  const accent = new THREE.Color(cssVar("--accent"));
+  ENG.parts.forEach(p => p.group.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.emissive.copy(p.id === id ? accent : new THREE.Color(0));
+    o.material.emissiveIntensity = p.id === id ? 0.45 : 0;
+  }));
+  document.querySelectorAll("#partChips .chip").forEach(c => c.classList.toggle("sel", c.dataset.id === id));
+  $("#btnIsolate").disabled = !id;
+  if (!id) { ENG.isolate = false; $("#btnIsolate").classList.remove("on"); }
+  applyIsolation();
+  const info = ENGINE_INFO[id], el = $("#partInfo");
+  if (!info) { el.innerHTML = '<div class="empty">Select a part on the engine or from the list above.</div>'; return; }
+  el.innerHTML = `<span class="sys">${esc(info.sys)}</span><h3 style="margin-top:6px">${esc(info.name)}</h3>
+    <h4>What it does</h4><p>${esc(info.does)}</p>
+    <h4>How it works</h4><p>${esc(info.how)}</p>
+    <h4>Signs it's failing</h4><ul>${info.fails.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+    <h4>Care &amp; maintenance</h4><p>${esc(info.care)}</p>
+    <div class="ctl-row" style="margin-top:12px"><button class="btn" id="btnFocus">Center camera on it</button></div>`;
+  $("#btnFocus").onclick = () => {
+    const p = ENG.parts.find(p => p.id === id);
+    ENG.focus = new THREE.Box3().setFromObject(p.group).getCenter(new THREE.Vector3());
+  };
+}
+function applyIsolation() {
+  ENG.parts.forEach(p => p.group.traverse(o => {
+    if (!o.isMesh) return;
+    const faded = ENG.isolate && ENG.sel && p.id !== ENG.sel;
+    o.material.transparent = faded; o.material.opacity = faded ? 0.1 : 1; o.material.depthWrite = !faded;
+  }));
+}
+
+function initEngine() {
+  const v = createViewer($("#engStage"), { cam: [10, 7, 12], target: [0, 0.4, 0], minD: 4, maxD: 45, grid: [40, 40, -5.4] });
+  buildEngine(v);
+  const order = ["block", "crank", "pistons", "rods", "oilpan", "oilfilter", "head", "gasket", "cams", "cover", "timing", "plugs", "coils", "intake", "throttle", "fuelrail", "exhaust", "waterpump", "alternator", "starter", "flywheel"];
+  $("#partChips").innerHTML = order.map(id => `<button class="chip" data-id="${id}">${esc(ENGINE_INFO[id].name)}</button>`).join("");
+  $("#partChips").onclick = e => { const c = e.target.closest(".chip"); if (c) selectEnginePart(c.dataset.id === ENG.sel ? null : c.dataset.id); };
+  const slider = $("#explode");
+  slider.oninput = () => { ENG.target = slider.value / 100; };
+  $("#btnAssemble").onclick = () => { ENG.target = 0; };
+  $("#btnExplode").onclick = () => { ENG.target = 1; };
+  $("#btnSpin").onclick = e => { v.controls.autoRotate = !v.controls.autoRotate; e.target.classList.toggle("on", v.controls.autoRotate); };
+  $("#btnIsolate").onclick = e => { ENG.isolate = !ENG.isolate; e.target.classList.toggle("on", ENG.isolate); applyIsolation(); };
+  const tmp = new THREE.Vector3();
+  v.tick = () => {
+    ENG.t += (ENG.target - ENG.t) * 0.06;
+    if (Math.abs(ENG.target - ENG.t) < 0.0005) ENG.t = ENG.target;
+    if (document.activeElement !== slider) slider.value = Math.round(ENG.t * 100);
+    $("#explodeVal").textContent = Math.round(ENG.t * 100) + "%";
+    ENG.parts.forEach(p => p.group.position.copy(p.dir).multiplyScalar(explodeProgress(p, ENG.t, ENG.maxStage)));
+    if (ENG.focus) {
+      v.controls.target.lerp(ENG.focus, 0.1);
+      if (tmp.copy(v.controls.target).distanceTo(ENG.focus) < 0.01) ENG.focus = null;
+    }
+  };
+  return v;
+}
+
+/* ================================================================
+   BUILD A CAR
+   ================================================================ */
+const WB = 1.35, TR = 0.78, WY = 0.34; // half wheelbase, half track, wheel center height (meters)
+const STEPS = [
+  { title: "Ladder frame", sys: "Structure",
+    what: "Everything bolts to this: two steel rails tied together by crossmembers, like a ladder. Trucks and classic cars are body-on-frame like this. Most modern cars are unibody, where the stamped body shell itself is the frame.",
+    attach: "Rails and crossmembers are welded together on a jig. Body mounts with rubber bushings will carry the body later.",
+    tools: "MIG welder, frame jig or a flat, level table, tape measure, squares.",
+    tip: "Measure corner-to-corner diagonals. If they match within about 1/8 in (3 mm), the frame is square. A frame out of square makes a proper alignment impossible.",
+    build(g) {
+      const m = M(0x2b2f33, { metalness: 0.5, roughness: 0.5 });
+      [-1, 1].forEach(s => add(g, box(4.0, 0.14, 0.08), m, [0, 0.48, 0.45 * s]).userData.label = "Frame rail");
+      [-1.9, -1.0, 0.0, 0.95, 1.85].forEach(x => add(g, box(0.1, 0.12, 0.82), m, [x, 0.48, 0]).userData.label = "Crossmember");
+    } },
+  { title: "Suspension", sys: "Chassis",
+    what: "Front: independent double-wishbone, an upper and a lower control arm per side holding a steering knuckle. Rear: coil springs and shocks locating a solid axle with trailing arms. Springs hold the car up; shocks (dampers) stop it bouncing.",
+    attach: "Arms pivot on rubber bushings bolted to frame brackets. Their outer ends hold the knuckle through ball joints. Springs sit in perches; shocks bolt to the frame at the top and the arm or axle at the bottom.",
+    tools: "Torque wrench, ball joint separator, coil spring compressor. A compressed spring stores enough energy to kill, so use a quality compressor.",
+    tip: "Final-tighten bushing bolts with the car's weight on its wheels (at ride height). Tightened in the air, rubber bushings get pre-twisted and wear out fast.",
+    build(g) {
+      const arm = M(0x3d4a56, { metalness: 0.5 }), spring = M(0xc0392b, { metalness: 0.4, roughness: 0.4 }), sh = M(0xd9a520, { metalness: 0.5 }), steel = M(0x9aa3ab, { metalness: 0.8, roughness: 0.3 });
+      [-1, 1].forEach(s => {
+        const z = s;
+        const la = add(g, tube([[WB - 0.18, 0.28, 0.42 * z], [WB, 0.26, 0.66 * z]], 0.025), arm); la.userData.label = "Lower control arm";
+        add(g, tube([[WB + 0.18, 0.28, 0.42 * z], [WB, 0.26, 0.66 * z]], 0.025), arm).userData.label = "Lower control arm";
+        add(g, tube([[WB - 0.12, 0.6, 0.45 * z], [WB, 0.56, 0.63 * z], [WB + 0.12, 0.6, 0.45 * z]], 0.02), arm).userData.label = "Upper control arm";
+        add(g, box(0.07, 0.36, 0.07), steel, [WB, 0.41, 0.66 * z]).userData.label = "Steering knuckle";
+        add(g, cylZ(0.08, 0.1), steel, [WB, WY, 0.71 * z]).userData.label = "Wheel hub & bearing";
+        add(g, helix([WB, 0.3, 0.56 * z], [WB, 0.74, 0.5 * z], 0.065, 6, 0.012), spring).userData.label = "Coil spring";
+        add(g, tube([[WB, 0.28, 0.56 * z], [WB, 0.78, 0.5 * z]], 0.025), sh).userData.label = "Shock absorber";
+        // rear
+        add(g, tube([[-0.55, 0.44, 0.45 * z], [-WB, 0.33, 0.55 * z]], 0.028), arm).userData.label = "Trailing arm";
+        add(g, box(0.18, 0.04, 0.16), steel, [-WB, 0.8, 0.55 * z]).userData.label = "Spring perch (frame)";
+        add(g, helix([-WB, 0.4, 0.55 * z], [-WB, 0.78, 0.55 * z], 0.07, 5, 0.013), spring).userData.label = "Rear coil spring";
+        add(g, tube([[-WB - 0.12, 0.36, 0.6 * z], [-WB - 0.08, 0.8, 0.5 * z]], 0.022), sh).userData.label = "Rear shock";
+      });
+    } },
+  { title: "Steering", sys: "Chassis",
+    what: "Rack-and-pinion. Turning the steering wheel spins a small pinion gear that slides a toothed rack left or right; tie rods push the knuckles to turn the wheels. Assist is hydraulic or, on most new cars, an electric motor (EPS).",
+    attach: "The rack bolts to the front crossmember through bushings. Inner tie rods thread into the rack ends; outer tie rod ends seat in a tapered hole in the knuckle and are held by a castle nut and cotter pin. The column runs up through the firewall.",
+    tools: "Tie rod end puller, torque wrench, new cotter pins, then a professional alignment.",
+    tip: "When replacing an outer tie rod end, count the turns as you unscrew the old one and thread the new one on the same count. That gets toe close enough to drive to the alignment shop.",
+    build(g) {
+      const m = M(0x8a949e, { metalness: 0.7, roughness: 0.3 });
+      add(g, cylZ(0.04, 0.8), m, [WB + 0.25, 0.32, 0]).userData.label = "Steering rack";
+      [-1, 1].forEach(s => add(g, tube([[WB + 0.25, 0.32, 0.4 * s], [WB + 0.12, 0.34, 0.65 * s]], 0.015), m).userData.label = "Tie rod");
+      add(g, tube([[WB + 0.25, 0.34, -0.25], [1.2, 0.6, -0.33], [0.55, 0.98, -0.38]], 0.022), m).userData.label = "Steering column";
+    } },
+  { title: "Brakes", sys: "Chassis",
+    what: "A hydraulic system. The master cylinder turns pedal force into fluid pressure; steel lines carry it to each corner, where calipers squeeze friction pads against spinning rotors. Fluid can't compress, so pressure at the pedal arrives instantly at all four wheels.",
+    attach: "Rotors slip over the hub's wheel studs. Caliper brackets bolt to the knuckle (or axle flange). Hard lines run along the frame; rubber flex hoses bridge to the moving suspension.",
+    tools: "Flare-nut (line) wrenches, brake line flaring tool, bleeder kit, the DOT fluid type printed on the reservoir cap.",
+    tip: "Bleed starting at the wheel farthest from the master cylinder (usually right rear) and finish at the closest. Brake fluid strips paint, so wipe spills immediately.",
+    build(g) {
+      const rotor = M(0x8d9298, { metalness: 0.75, roughness: 0.35 }), cal = M(0xc0392b, { metalness: 0.3 }), line = M(0xb0b6bc, { metalness: 0.8 });
+      [[WB, 1], [WB, -1], [-WB, 1], [-WB, -1]].forEach(([x, s]) => {
+        add(g, cylZ(0.15, 0.03, 36), rotor, [x, WY, 0.745 * s]).userData.label = "Brake rotor";
+        add(g, box(0.09, 0.14, 0.08), cal, [x - 0.11, WY + 0.08, 0.745 * s]).userData.label = "Brake caliper";
+      });
+      add(g, cylX(0.05, 0.22), M(0x2b2f33), [1.0, 0.86, -0.36]).userData.label = "Master cylinder";
+      add(g, box(0.1, 0.07, 0.1), M(0xe8e0c8, { metalness: 0, roughness: 0.4 }), [1.0, 0.94, -0.36]).userData.label = "Brake fluid reservoir";
+      const L = p => add(g, tube(p, 0.008), line).userData.label = "Brake line";
+      L([[1.0, 0.84, -0.36], [1.15, 0.55, -0.45], [WB - 0.08, 0.45, -0.7]]);
+      L([[1.0, 0.84, -0.36], [1.15, 0.6, 0.0], [1.2, 0.5, 0.45], [WB - 0.08, 0.45, 0.7]]);
+      L([[1.0, 0.84, -0.36], [0.9, 0.42, -0.4], [-1.1, 0.42, -0.4], [-WB - 0.08, 0.42, -0.7]]);
+      L([[1.0, 0.84, -0.36], [0.85, 0.42, -0.38], [-1.0, 0.42, 0.4], [-WB - 0.08, 0.42, 0.7]]);
+    } },
+  { title: "Engine & transmission", sys: "Powertrain",
+    what: "The engine makes torque; the transmission multiplies it through a set of gear ratios so the car can pull away from a stop and still cruise at highway speed. Here the engine sits lengthwise (longitudinal) for rear-wheel drive.",
+    attach: "Engine and transmission bolt together at the bellhousing, with a flywheel and clutch (manual) or flexplate and torque converter (automatic) between them. Rubber engine mounts and a transmission mount hold the assembly to the frame.",
+    tools: "Engine hoist, load leveler, transmission jack, engine stand.",
+    tip: "Never put any part of your body under a suspended engine. Lower it slowly and steer it with your hands on its sides.",
+    build(g) {
+      const blk = M(0xb7bec6, { metalness: 0.55, roughness: 0.4 }), cov = M(0x8e2b22, { metalness: 0.35 });
+      add(g, box(0.62, 0.42, 0.42), blk, [1.25, 0.72, 0]).userData.label = "Engine block";
+      add(g, box(0.62, 0.14, 0.46), blk, [1.25, 1.0, 0]).userData.label = "Cylinder head";
+      add(g, box(0.6, 0.08, 0.4), cov, [1.25, 1.11, 0]).userData.label = "Valve cover";
+      add(g, box(0.55, 0.12, 0.36), M(0x737a82), [1.25, 0.46, 0]).userData.label = "Oil pan";
+      add(g, box(0.5, 0.14, 0.14), M(0x2d3237), [1.25, 0.92, 0.3]).userData.label = "Intake manifold";
+      add(g, new THREE.CylinderGeometry(0.12, 0.22, 0.7, 24).rotateZ(Math.PI / 2), blk, [0.6, 0.66, 0]).userData.label = "Transmission";
+      [-1, 1].forEach(s => add(g, box(0.08, 0.1, 0.1), M(0x141516, { roughness: 0.9 }), [1.25, 0.56, 0.3 * s]).userData.label = "Engine mount");
+    } },
+  { title: "Driveshaft & rear axle", sys: "Powertrain",
+    what: "The driveshaft carries torque from the transmission to the rear differential. The diff turns the power 90° to the axle shafts and lets the left and right wheels turn at different speeds in a corner, since the outside wheel travels farther.",
+    attach: "U-joints at each end of the driveshaft. The front slip yoke slides into the transmission tailshaft; the rear flange bolts to the diff's pinion. Axle shafts run inside the axle housing out to the wheel hubs.",
+    tools: "Paint pen (mark the driveshaft's orientation before removing it to keep its balance), U-joint press or a big vise.",
+    tip: "Differential gear oil is commonly changed every 30k–60k miles; check your manual. Limited-slip diffs may need a friction-modifier additive.",
+    build(g) {
+      const m = M(0x9aa3ab, { metalness: 0.8, roughness: 0.3 });
+      add(g, tube([[0.25, 0.62, 0], [-0.5, 0.48, 0], [-1.2, 0.36, 0]], 0.035), m).userData.label = "Driveshaft";
+      add(g, new THREE.SphereGeometry(0.16, 24, 16), M(0x5a6068, { metalness: 0.6 }), [-WB, WY, 0]).userData.label = "Rear differential";
+      add(g, cylZ(0.045, 1.38), M(0x5a6068, { metalness: 0.6 }), [-WB, WY, 0]).userData.label = "Axle housing & shafts";
+    } },
+  { title: "Exhaust", sys: "Powertrain",
+    what: "Carries exhaust gas out and cleans it. The catalytic converter turns carbon monoxide, unburned fuel and NOx into CO₂, water and nitrogen. The muffler quiets it. Oxygen sensors before and after the cat report to the ECU.",
+    attach: "Bolted flanges with gaskets at the manifold, slip joints with clamps further back, and rubber hangers so the system can move with the engine.",
+    tools: "Penetrating oil, O2 sensor socket, exhaust hanger pliers. For custom pipe: a MIG welder and a tube bender.",
+    tip: "An exhaust leak ahead of an O2 sensor pulls in outside air and confuses the fuel trims. Never run an engine in a closed garage: carbon monoxide is odorless and deadly.",
+    build(g) {
+      const m = M(0x8a8f94, { metalness: 0.75, roughness: 0.45 });
+      add(g, tube([[1.25, 0.62, 0.3], [1.05, 0.32, 0.3], [0.5, 0.27, 0.25]], 0.035), m).userData.label = "Downpipe";
+      add(g, box(0.3, 0.12, 0.16), m, [0.3, 0.27, 0.25]).userData.label = "Catalytic converter";
+      add(g, tube([[0.15, 0.27, 0.25], [-0.5, 0.27, 0.25]], 0.035), m).userData.label = "Mid pipe";
+      add(g, box(0.5, 0.16, 0.24), m, [-0.75, 0.27, 0.25]).userData.label = "Muffler";
+      add(g, tube([[-1.0, 0.27, 0.25], [-1.2, 0.52, 0.3], [-1.5, 0.52, 0.3], [-1.95, 0.25, 0.3], [-2.25, 0.25, 0.3]], 0.035), m).userData.label = "Tailpipe";
+    } },
+  { title: "Fuel system", sys: "Powertrain",
+    what: "The tank stores fuel; an electric pump inside it pushes fuel through a filter and lines up to the engine's fuel rail. The EVAP system captures gasoline vapor so it gets burned instead of vented.",
+    attach: "The tank hangs from steel straps. The filler neck and vent hoses connect to the body; fuel lines use quick-connect fittings and clip along the frame.",
+    tools: "Quick-disconnect tools, Class B fire extinguisher. Relieve fuel pressure first (pull the pump fuse and run the engine until it stalls).",
+    tip: "Run the tank nearly empty before dropping it. Gasoline weighs about 6 lb per gallon, so a full 15-gallon tank is 90+ lb overhead.",
+    build(g) {
+      add(g, box(0.42, 0.22, 0.8), M(0x2b2f33, { metalness: 0.3, roughness: 0.6 }), [-1.82, 0.42, 0]).userData.label = "Fuel tank";
+      add(g, tube([[-1.62, 0.36, -0.32], [0.9, 0.38, -0.32], [1.2, 0.95, -0.15]], 0.01), M(0xe0b040, { metalness: 0.6 })).userData.label = "Fuel line";
+      add(g, tube([[-1.85, 0.52, -0.35], [-1.8, 0.8, -0.65], [-1.75, 0.9, -0.84]], 0.03), M(0x141516)).userData.label = "Filler neck";
+      add(g, cylX(0.04, 0.14), M(0xb0b6bc, { metalness: 0.7 }), [-0.2, 0.38, -0.32]).userData.label = "Fuel filter";
+    } },
+  { title: "Cooling", sys: "Powertrain",
+    what: "About a third of the fuel's energy becomes waste heat. The water pump circulates coolant through the engine and radiator. The thermostat stays closed until the engine warms up (opening around 180–195°F / 82–90°C), and the fan pulls air through the radiator when the car is slow.",
+    attach: "The radiator sits on rubber isolators in the core support. The upper hose runs from the thermostat housing, the lower hose returns to the water pump, and heater hoses go to the heater core behind the dash.",
+    tools: "Hose clamp pliers, drain pan, spill-free funnel for burping trapped air.",
+    tip: "Never open a hot radiator cap. The system runs at about 13–16 psi, which keeps coolant liquid well above its normal boiling point; release that pressure and it flashes to steam.",
+    build(g) {
+      add(g, box(0.06, 0.45, 0.66), M(0x5a6068, { metalness: 0.6, roughness: 0.4 }), [1.95, 0.72, 0]).userData.label = "Radiator";
+      add(g, cylX(0.22, 0.04, 32), M(0x141516), [1.86, 0.72, 0]).userData.label = "Cooling fan";
+      const h = M(0x1c1d1f, { roughness: 0.8 });
+      add(g, tube([[1.92, 0.9, 0.22], [1.7, 0.98, 0.15], [1.5, 1.0, 0.1]], 0.025), h).userData.label = "Upper radiator hose";
+      add(g, tube([[1.92, 0.52, -0.22], [1.7, 0.5, -0.18], [1.52, 0.6, -0.12]], 0.025), h).userData.label = "Lower radiator hose";
+      add(g, box(0.12, 0.12, 0.08), M(0xe8e0c8, { metalness: 0, roughness: 0.3, transparent: true, opacity: 0.85 }), [1.75, 0.95, -0.55]).userData.label = "Coolant reservoir";
+    } },
+  { title: "Electrical", sys: "Electrical",
+    what: "A 12-volt battery, the alternator that recharges it, the starter, a fuse and relay box, the ECU (engine computer), and the wiring harness that links every sensor and actuator. The frame and body act as the negative return path (negative ground).",
+    attach: "The battery sits in a tray with a hold-down clamp. Heavy cables run to the starter and fuse box. Ground straps connect engine to frame. The harness clips along the body with a connector at each component.",
+    tools: "Multimeter, test light, wire strippers, ratcheting crimper, heat-shrink tubing.",
+    tip: "Most electrical gremlins are bad grounds. Cleaning and tightening ground connections fixes a surprising number of problems. See the Electrical tab for tests.",
+    build(g) {
+      add(g, box(0.26, 0.2, 0.17), M(0x1e1f22, { roughness: 0.6 }), [1.68, 0.9, 0.5]).userData.label = "Battery";
+      add(g, cylY(0.025, 0.03), M(0xc0392b), [1.62, 1.015, 0.5]).userData.label = "Battery + terminal";
+      add(g, cylY(0.025, 0.03), M(0x333333), [1.74, 1.015, 0.5]).userData.label = "Battery − terminal";
+      add(g, cylX(0.08, 0.14), M(0xb7bec6, { metalness: 0.6 }), [1.5, 0.66, 0.3]).userData.label = "Alternator";
+      add(g, box(0.16, 0.1, 0.12), M(0x2b2f33), [1.62, 0.95, -0.52]).userData.label = "Fuse & relay box";
+      add(g, box(0.16, 0.04, 0.12), M(0x5a6068, { metalness: 0.6 }), [0.72, 1.0, 0.32]).userData.label = "ECU (engine computer)";
+      add(g, tube([[1.62, 1.02, 0.5], [1.55, 0.9, 0.42], [1.5, 0.7, 0.35]], 0.012), M(0xc0392b)).userData.label = "Positive cable";
+      add(g, tube([[1.74, 1.02, 0.5], [1.85, 0.7, 0.45], [1.8, 0.5, 0.45]], 0.012), M(0x222222)).userData.label = "Ground cable";
+      const wire = M(0x2c6a98, { roughness: 0.6 });
+      add(g, tube([[1.62, 0.95, -0.46], [1.2, 1.05, -0.3], [0.95, 1.02, 0.1], [0.72, 1.02, 0.3]], 0.012), wire).userData.label = "Engine harness";
+      add(g, tube([[0.72, 1.0, 0.25], [0.6, 0.6, 0.6], [-1.0, 0.58, 0.62], [-2.15, 0.75, 0.6]], 0.01), wire).userData.label = "Body harness (to taillights)";
+    } },
+  { title: "Wheels & tires", sys: "Chassis",
+    what: "The only contact with the road: four patches each about the size of your hand. A tire size like 225/45R17 means 225 mm wide, sidewall height 45% of the width, Radial construction, fits a 17-inch wheel.",
+    attach: "The wheel slides over the hub's studs and is clamped by lug nuts tightened in a star (criss-cross) pattern to the torque spec.",
+    tools: "Torque wrench, lug socket, floor jack, jack stands.",
+    tip: "Re-check lug nut torque after the first 50–100 miles on newly mounted wheels. They can settle.",
+    build(g) {
+      const tire = M(0x18191b, { metalness: 0, roughness: 0.85 }), rim = M(0xc5ccd3, { metalness: 0.85, roughness: 0.25 });
+      [[WB, 1], [WB, -1], [-WB, 1], [-WB, -1]].forEach(([x, s]) => {
+        add(g, new THREE.TorusGeometry(0.25, 0.09, 16, 40), tire, [x, WY, 0.78 * s]).userData.label = "Tire";
+        add(g, cylZ(0.2, 0.17, 32), rim, [x, WY, 0.78 * s]).userData.label = "Wheel (rim)";
+        for (let i = 0; i < 5; i++) {
+          const a = i * Math.PI * 2 / 5;
+          add(g, box(0.035, 0.17, 0.02), rim, [x + Math.cos(a) * 0.1, WY + Math.sin(a) * 0.1, 0.87 * s], [0, 0, a + Math.PI / 2]).userData.label = "Wheel spoke";
+        }
+      });
+    } },
+  { title: "Interior", sys: "Body",
+    what: "Floor pan, firewall, seats, dashboard, steering wheel and pedals: the parts you touch. The firewall separates engine heat and fire risk from the cabin.",
+    attach: "Seats bolt through the floor into reinforced mounts (usually four bolts each). The steering wheel slides onto splines on the column; the airbag and its clock spring sit behind the wheel's center.",
+    tools: "Disconnect the battery and wait about 10 minutes before touching airbag connectors (yellow plugs).",
+    tip: "Seat and seat-belt bolts are safety fasteners. Reuse the OEM bolts or buy proper-grade replacements, and torque them to spec.",
+    build(g) {
+      const pan = M(0x4a5560, { metalness: 0.5 }), seat = M(0x2a2a2e, { metalness: 0, roughness: 0.9 });
+      add(g, box(3.2, 0.03, 1.5), pan, [-0.1, 0.57, 0]).userData.label = "Floor pan";
+      add(g, box(0.03, 0.45, 1.5), pan, [0.92, 0.8, 0]).userData.label = "Firewall";
+      [-1, 1].forEach(s => {
+        add(g, box(0.45, 0.1, 0.44), seat, [0.0, 0.68, 0.36 * s]).userData.label = "Front seat";
+        add(g, box(0.1, 0.55, 0.44), seat, [-0.24, 0.98, 0.36 * s], [0, 0, 0.18]).userData.label = "Front seat";
+      });
+      add(g, box(0.45, 0.1, 1.2), seat, [-1.0, 0.68, 0]).userData.label = "Rear bench";
+      add(g, box(0.1, 0.5, 1.2), seat, [-1.24, 0.96, 0], [0, 0, 0.18]).userData.label = "Rear bench";
+      add(g, box(0.3, 0.18, 1.5), M(0x202326, { roughness: 0.7 }), [0.76, 1.04, 0]).userData.label = "Dashboard";
+      add(g, new THREE.TorusGeometry(0.16, 0.018, 10, 36), M(0x141516), [0.52, 1.0, -0.38], [0, Math.PI / 2, -0.45]).userData.label = "Steering wheel";
+    } },
+  { title: "Body shell", sys: "Body",
+    what: "Doors, fenders, hood, roof and quarter panels. The body gives the car its aerodynamics, keeps weather out, and on modern cars forms crumple zones that absorb crash energy before it reaches the cabin.",
+    attach: "On body-on-frame cars, the body bolts to frame mounts through rubber bushings. Panels bolt or weld on; doors hang on hinges and latch to strikers.",
+    tools: "Panel gap gauge, alignment shims, a helper for lifting.",
+    tip: "Set panel gaps before the final tightening. Even gaps all the way around are the signature of a careful build. Use the Body button to switch between see-through and solid.",
+    build(g) {
+      const s = new THREE.Shape();
+      s.moveTo(-2.2, 0.3); s.lineTo(-WB - 0.42, 0.3);
+      s.absarc(-WB, 0.34, 0.42, Math.PI, 0, true);
+      s.lineTo(WB - 0.42, 0.3);
+      s.absarc(WB, 0.34, 0.42, Math.PI, 0, true);
+      s.lineTo(2.2, 0.3); s.lineTo(2.27, 0.55); s.lineTo(2.2, 0.82); s.lineTo(1.0, 0.98);
+      s.lineTo(0.45, 1.38); s.lineTo(-0.9, 1.42); s.lineTo(-1.6, 1.0); s.lineTo(-2.2, 0.95); s.lineTo(-2.27, 0.6); s.closePath();
+      const geo = new THREE.ExtrudeGeometry(s, { depth: 1.7, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 20 });
+      geo.translate(0, 0, -0.85);
+      const mat = M(0x2c6a98, { metalness: 0.55, roughness: 0.3, transparent: true, opacity: 0.28, depthWrite: false });
+      const m = add(g, geo, mat); m.userData.label = "Body shell"; m.userData.isBody = true;
+    } },
+  { title: "Glass & lights", sys: "Body",
+    what: "Windshield, side and rear glass, headlights, taillights and mirrors. The windshield is laminated safety glass and is structural: it contributes to roof crush strength and backs up the passenger airbag.",
+    attach: "The windshield is bonded in with urethane adhesive. Lights bolt into the body and plug into the harness.",
+    tools: "Windshields are a pro job. Urethane needs a specific cure time before the car is safe to drive.",
+    tip: "Check every exterior bulb monthly: lights and hazards on, walk around the car, and have someone press the brake pedal.",
+    build(g) {
+      const glass = M(0x9fc4dd, { metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.45 });
+      add(g, box(0.68, 0.01, 1.62), glass, [0.725, 1.18, 0], [0, 0, Math.atan2(0.4, -0.55)]).userData.label = "Windshield";
+      add(g, box(0.82, 0.01, 1.62), glass, [-1.25, 1.21, 0], [0, 0, Math.atan2(-0.42, -0.7)]).userData.label = "Rear glass";
+      const w = new THREE.Shape(); w.moveTo(0.92, 1.0); w.lineTo(0.47, 1.34); w.lineTo(-0.88, 1.37); w.lineTo(-1.5, 1.02); w.closePath();
+      [-1, 1].forEach(s => {
+        add(g, new THREE.ExtrudeGeometry(w, { depth: 0.01, bevelEnabled: false }), glass, [0, 0, 0.885 * s]).userData.label = "Side window";
+        add(g, box(0.05, 0.08, 0.32), M(0xfff6d8, { emissive: 0xfff2c0, emissiveIntensity: 0.8 }), [2.24, 0.7, 0.58 * s]).userData.label = "Headlight";
+        add(g, box(0.05, 0.08, 0.3), M(0xb01818, { emissive: 0xff2010, emissiveIntensity: 0.6 }), [-2.27, 0.76, 0.6 * s]).userData.label = "Taillight";
+        add(g, box(0.1, 0.07, 0.12), M(0x1e1f22), [0.85, 1.05, 0.95 * s]).userData.label = "Side mirror";
+      });
+    } }
+];
+
+const CAR = { groups: [], cur: -1, bodySolid: false, playing: null, pulse: 0 };
+function initBuild() {
+  const v = createViewer($("#carStage"), { cam: [5.2, 3.2, 5.6], target: [0, 0.6, 0], minD: 1.5, maxD: 20, grid: [16, 32, 0] });
+  STEPS.forEach((st, i) => {
+    const g = new THREE.Group(); st.build(g); g.visible = false;
+    g.traverse(o => { if (o.isMesh) { o.userData.step = i; if (!o.userData.label) o.userData.label = st.title; } });
+    v.scene.add(g); v.pickables.push(g); CAR.groups.push(g);
+  });
+  $("#stepList").innerHTML = STEPS.map((s, i) => `<button class="step" data-i="${i}"><span class="n">${i + 1}</span><span>${esc(s.title)}</span></button>`).join("");
+  $("#stepList").onclick = e => { const b = e.target.closest(".step"); if (b) { stopPlay(); goStep(+b.dataset.i); } };
+  $("#bNext").onclick = () => { stopPlay(); goStep(Math.min(STEPS.length - 1, CAR.cur + 1)); };
+  $("#bPrev").onclick = () => { stopPlay(); goStep(Math.max(-1, CAR.cur - 1)); };
+  $("#bReset").onclick = () => { stopPlay(); goStep(-1); };
+  $("#bAll").onclick = () => {
+    if (CAR.playing) { stopPlay(); return; }
+    if (CAR.cur >= STEPS.length - 1) goStep(-1);
+    $("#bAll").classList.add("on"); $("#bAll").textContent = "Pause";
+    CAR.playing = setInterval(() => { if (CAR.cur >= STEPS.length - 1) stopPlay(); else goStep(CAR.cur + 1); }, 1600);
+  };
+  $("#bBody").onclick = () => {
+    CAR.bodySolid = !CAR.bodySolid;
+    $("#bBody").textContent = CAR.bodySolid ? "Body: solid" : "Body: see-through";
+    $("#bBody").classList.toggle("on", CAR.bodySolid);
+    CAR.groups.forEach(g => g.traverse(o => { if (o.userData.isBody) { o.material.opacity = CAR.bodySolid ? 1 : 0.28; o.material.transparent = !CAR.bodySolid; o.material.depthWrite = CAR.bodySolid; } }));
+  };
+  $("#bSpin").onclick = e => { v.controls.autoRotate = !v.controls.autoRotate; e.target.classList.toggle("on", v.controls.autoRotate); };
+  v.onClick = h => { if (h) { stopPlay(); renderStep(h.object.userData.step, h.object.userData.label); } };
+  let last = performance.now();
+  v.tick = now => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const accent = new THREE.Color(cssVar("--accent"));
+    CAR.groups.forEach((g, i) => {
+      if (g.userData.anim !== undefined && g.userData.anim < 1) {
+        g.userData.anim = Math.min(1, g.userData.anim + dt * 1.4);
+        const e = 1 - Math.pow(1 - g.userData.anim, 3);
+        g.position.y = 1.8 * (1 - e);
+      }
+    });
+    CAR.pulse = Math.max(0, CAR.pulse - dt * 0.5);
+    const g = CAR.groups[CAR.cur];
+    if (g) g.traverse(o => { if (o.isMesh && !o.material.userData.glow) { o.material.emissive.copy(accent); o.material.emissiveIntensity = 0.5 * CAR.pulse; } });
+  };
+  goStep(-1);
+  return v;
+}
+function stopPlay() { if (CAR.playing) clearInterval(CAR.playing); CAR.playing = null; $("#bAll").classList.remove("on"); $("#bAll").textContent = "Build all"; }
+function goStep(n) {
+  const prev = CAR.cur; CAR.cur = n;
+  // clear glow on previous step
+  const pg = CAR.groups[prev];
+  if (pg) pg.traverse(o => { if (o.isMesh && o.material.emissiveIntensity !== undefined && !/light/i.test(o.userData.label)) o.material.emissiveIntensity = 0; });
+  CAR.groups.forEach((g, i) => {
+    const show = i <= n;
+    if (show && !g.visible) { g.userData.anim = 0; g.position.y = 1.8; }
+    g.visible = show;
+  });
+  CAR.pulse = 1;
+  document.querySelectorAll("#stepList .step").forEach((b, i) => { b.classList.toggle("done", i < n); b.classList.toggle("cur", i === n); });
+  $("#bPrev").disabled = n < 0; $("#bNext").disabled = n >= STEPS.length - 1;
+  renderStep(n);
+}
+function renderStep(n, clicked) {
+  const el = $("#stepInfo");
+  if (n < 0) {
+    el.innerHTML = `<span class="sys">Start here</span><h3 style="margin-top:6px">An empty garage</h3><p style="margin-top:6px">Press <b>Add next</b> to lay down the frame, then keep adding systems in the order a builder would. Hover over parts in 3D to see their names; click one to jump to its step.</p>`;
+    return;
+  }
+  const s = STEPS[n];
+  el.innerHTML = `<span class="sys">Step ${n + 1} of ${STEPS.length} · ${esc(s.sys)}</span>
+    <h3 style="margin-top:6px">${esc(s.title)}</h3>
+    ${clicked ? `<p class="mono" style="font-size:12px;color:var(--accent);margin-top:4px">Selected: ${esc(clicked)}</p>` : ""}
+    <h4>What it is</h4><p>${esc(s.what)}</p>
+    <h4>How it attaches</h4><p>${esc(s.attach)}</p>
+    <h4>Tools</h4><p>${esc(s.tools)}</p>
+    <div class="callout"><b>Shop tip.</b> ${esc(s.tip)}</div>`;
+}
+
+/* ================================================================
+   MAINTENANCE GUIDES
+   ================================================================ */
+const GUIDES = [
+  { id: "flat-tire", cat: "Wheels & tires", title: "Change a flat tire", diff: 1, time: "20–30 min",
+    tools: ["Spare tire", "Jack (in the trunk kit)", "Lug wrench", "Wheel wedge or a brick", "Flashlight & gloves"],
+    safety: ["Get well off the road onto flat, firm ground. Hazards on.", "Never put any part of your body under a car held up only by a jack.", "Use only the jacking points shown in your owner's manual."],
+    steps: ["Park, set the parking brake, and put it in Park (or 1st gear on a manual).", "Wedge the wheel diagonally opposite the flat so the car can't roll.", "Pop off the hubcap if there is one. With the tire still on the ground, loosen each lug nut about half a turn counterclockwise. Use your foot on the wrench if you need to.", "Place the jack under the reinforced pinch weld or jack point nearest the flat. Raise until the flat is about 6 in (15 cm) off the ground.", "Unscrew the lug nuts the rest of the way and keep them together (a hubcap makes a good bowl). Pull the wheel straight toward you.", "Lift the spare onto the studs, lining up the holes. Thread every nut on by hand with the tapered side facing the wheel.", "Snug the nuts in a star pattern (across, not around).", "Lower the car until the tire just touches, tighten the nuts firmly in the star pattern, then lower fully and remove the jack.", "Stow the flat and tools. Check the spare's pressure as soon as you can, and have the lugs torqued to spec (often 76–100 ft-lb)."],
+    tips: ["Compact 'donut' spares are usually limited to about 50 mph (80 km/h) and roughly 70 miles. Get the real tire fixed or replaced soon.", "Check your spare's air pressure twice a year. A flat spare is a common surprise."] },
+  { id: "tire-care", cat: "Wheels & tires", title: "Check tire pressure, tread & rotate", diff: 1, time: "15 min (60 to rotate)",
+    tools: ["Tire pressure gauge", "Air compressor or gas-station air", "A penny or tread depth gauge", "Jack & 2+ jack stands (for rotation)"],
+    safety: ["Check pressure cold (driven less than a mile), since hot tires read high.", "Rotate only with the car on jack stands, never just a jack."],
+    steps: ["Find the correct pressure on the sticker in the driver's door jamb. The number on the tire sidewall is the maximum, not the target.", "Unscrew the valve cap, press the gauge on firmly, and read it.", "Add air in short bursts, re-checking until it matches the sticker. Let air out by pressing the valve's center pin.", "Penny test: put Lincoln's head into a tread groove, upside down. If you can see the top of his head, tread is under 2/32 in. Replace the tire.", "Look for uneven wear: worn on both edges = underinflated, center = overinflated, one edge = alignment problem.", "Rotate every 5,000–7,500 miles. Front-wheel drive: fronts go straight back, rears cross to the front. Rear/all-wheel drive: rears go straight forward, fronts cross to the back.", "Directional tires (arrow on sidewall) stay on the same side and just swap front to back."],
+    tips: ["Tires lose about 1 psi per month, and about 1 psi for every 10°F drop in temperature.", "Correct pressure improves fuel economy, braking and tire life."] },
+  { id: "battery", cat: "Electrical", title: "Replace the car battery", diff: 1, time: "20–30 min",
+    tools: ["10 mm wrench or socket (most common; some use 8 or 13 mm)", "Battery terminal brush", "Safety glasses & gloves", "Baking soda + water", "Optional: memory saver"],
+    safety: ["Batteries hold sulfuric acid and can vent explosive hydrogen gas. No sparks, no smoking.", "Don't let a wrench touch the positive terminal and bare metal at the same time."],
+    steps: ["Engine off, key out. Note any radio security code you may need afterward.", "Disconnect the NEGATIVE (−, black) cable first: loosen the nut and twist the clamp off. Tuck it aside.", "Disconnect the POSITIVE (+, red) cable.", "Remove the hold-down clamp or bracket at the battery's base.", "Lift the battery straight out using the handle. It weighs 30–50 lb, so lift with your legs.", "Clean the tray and cable clamps. Baking soda and water fizzes away white or green corrosion; rinse and dry.", "Set the new battery in the same orientation (positive on the same side) and reinstall the hold-down. It shouldn't wiggle.", "Connect POSITIVE first, then NEGATIVE. Tighten until the clamps can't twist by hand.", "Start the car. Reset the clock and radio presets. Return the old battery to the store for the core refund and recycling."],
+    tips: ["Why negative off first: the whole car body is connected to negative. Once that's disconnected, touching the body with your wrench while on the positive terminal can't make a spark.", "Buy the right group size (fits the tray) and at least the CCA (cold cranking amps) your manual recommends.", "Most batteries last 3–5 years; heat kills them faster than cold."] },
+  { id: "jump", cat: "Electrical", title: "Jump-start a dead battery", diff: 1, time: "10 min",
+    tools: ["Jumper cables or a portable jump pack", "A running donor car (if using cables)"],
+    safety: ["Never connect the final clamp directly to the dead battery's negative post. It can spark near hydrogen gas.", "Don't jump a battery that's cracked, leaking or frozen."],
+    steps: ["Park the donor car close, both cars off, parking brakes on.", "Red clamp to the DEAD battery's positive (+).", "Other red clamp to the GOOD battery's positive (+).", "Black clamp to the GOOD battery's negative (−).", "Last black clamp to unpainted metal on the dead car's engine (a bolt or bracket) away from the battery.", "Start the donor car and let it run 2–3 minutes.", "Start the dead car. If it doesn't start, wait another few minutes and try again.", "Remove the clamps in reverse order: black from dead car, black from donor, red from donor, red from dead car.", "Drive at least 20–30 minutes to recharge, then have the battery and alternator tested."],
+    tips: ["Clicking but no crank usually means a weak battery or corroded cable ends. Total silence can be a dead battery or a loose connection.", "If it needs a jump again the next day, the battery or the charging system is bad."] },
+  { id: "oil", cat: "Engine", title: "Change engine oil & filter", diff: 2, time: "45–60 min",
+    tools: ["Socket or wrench for the drain plug", "Oil filter wrench", "Drain pan (6+ qt)", "Funnel", "Ramps or jack + jack stands, wheel chocks", "Gloves & rags", "Torque wrench (recommended)"],
+    parts: ["Correct oil (viscosity on the oil cap or in the manual, e.g. 0W-20)", "New oil filter", "New drain plug crush washer"],
+    safety: ["Hot oil burns. Warm the engine for a few minutes, not until it's fully hot.", "Never get under a car held only by a jack."],
+    steps: ["Run the engine 2–3 minutes so the oil flows, then shut it off.", "Raise the front on ramps or jack stands, chock the rear wheels. Remove the oil fill cap on top (helps it drain).", "Slide the drain pan under the drain plug and loosen it counterclockwise. Spin the last threads out by hand and pull it away quickly.", "Let it drain 5–10 minutes. Wipe the plug, fit a new crush washer, and reinstall. Snug, about 25 ft-lb typical, check your spec. Aluminum pans strip easily.", "Move the pan under the oil filter, unscrew it (filter wrench if tight), and let it drain.", "Make sure the old filter's rubber gasket came off with it. A doubled gasket will leak massively.", "Smear clean oil on the new filter's gasket. Spin it on until the gasket touches, then about ¾ turn more by hand.", "Lower the car. Pour in the capacity minus half a quart, wait a minute, check the dipstick, and top up to the full mark.", "Start the engine for 30 seconds and check under the car for drips at the plug and filter. Shut off, wait 2 minutes, re-check the level.", "Reset the oil-life monitor. Pour the old oil into the empty jugs and take it to an auto parts store for free recycling."],
+    tips: ["Modern synthetic oil intervals are often 5,000–10,000 miles. Follow the manual or the oil-life monitor, and change it sooner for towing, dusty roads or lots of short trips.", "Write the mileage and date on a sticker on the windshield or in a log."] },
+  { id: "air-filter", cat: "Engine", title: "Replace the engine air filter", diff: 1, time: "10 min",
+    tools: ["Screwdriver (some boxes use clips only)", "Shop vacuum or rag"],
+    parts: ["Engine air filter for your model"],
+    safety: ["Don't run the engine with the air box open."],
+    steps: ["Find the black plastic air box between the front of the car and the engine's intake hose.", "Release the clips or screws and lift the lid.", "Note which way the old filter sits, then lift it out.", "Hold it up to a light. If light barely comes through, or it's gray with debris, it's due.", "Vacuum or wipe leaves and dirt out of the bottom of the box.", "Drop in the new filter with the rubber rim seated all the way around.", "Close the lid and re-latch every clip. A lid that isn't sealed lets unfiltered air in and can foul the MAF sensor."],
+    tips: ["Typical interval: every 15,000–30,000 miles, sooner on dusty or gravel roads."] },
+  { id: "cabin-filter", cat: "Interior", title: "Replace the cabin air filter", diff: 1, time: "10 min",
+    tools: ["Usually none, sometimes a screwdriver"],
+    parts: ["Cabin air filter for your model"],
+    safety: ["Old filters can be full of mold spores and debris. Wear a mask if you're sensitive."],
+    steps: ["Empty the glovebox.", "Unhook the glovebox stops or damper arm on its sides so it swings down further.", "Find the rectangular filter cover behind it and unclip it.", "Slide out the old filter, noting the AIRFLOW arrow direction.", "Slide in the new one with the arrow pointing the same way (usually down or toward the rear).", "Clip the cover back, re-hook the glovebox, refill it."],
+    tips: ["A clogged cabin filter causes weak A/C and heater airflow, musty smells and slow defogging.", "Typical interval: once a year or 12,000–15,000 miles."] },
+  { id: "wipers", cat: "Exterior", title: "Replace wiper blades", diff: 1, time: "10 min",
+    tools: ["A towel"],
+    parts: ["Wiper blades (driver and passenger sides are often different lengths)"],
+    safety: ["Lay a towel on the windshield. A bare wiper arm snapping back can crack the glass."],
+    steps: ["Lift the wiper arm away from the windshield until it stays up.", "Find the small release tab where the blade meets the hook-shaped end of the arm.", "Press the tab and slide the blade down, out of the hook.", "Slide the new blade's adapter into the hook until it clicks.", "Tug on it to confirm it's locked, then lower the arm gently onto the towel, then remove the towel.", "Repeat for the other side and the rear wiper if you have one."],
+    tips: ["Replace blades every 6–12 months, or as soon as they streak, chatter or skip.", "Wiping the rubber edge with a little washer fluid on a paper towel extends their life."] },
+  { id: "bulbs", cat: "Exterior", title: "Replace a headlight or taillight bulb", diff: 1, time: "15–45 min",
+    tools: ["Gloves (clean nitrile)", "Screwdriver or trim tool (model-dependent)"],
+    parts: ["The right bulb number (e.g. H11, 9005, 7443), found in the manual or on the old bulb"],
+    safety: ["Turn the lights off and let hot bulbs cool before touching."],
+    steps: ["Open the hood (headlights) or trunk (taillights) and find the back of the light housing. Some cars need the air box, battery or wheel-well liner moved for access.", "Unplug the electrical connector from the bulb base by pressing its release tab.", "Twist the bulb a quarter turn counterclockwise and pull it straight out.", "Handle the new halogen bulb by its base only. Skin oil on the glass creates hot spots that burn it out early.", "Insert, twist clockwise to lock, and reconnect the plug.", "Turn the lights on to test before reassembling everything."],
+    tips: ["Replace headlight bulbs in pairs; the other one is close behind and they'll match in brightness.", "If a new bulb doesn't work, check the fuse and the connector for corrosion."] },
+  { id: "fluids", cat: "Engine", title: "Check & top off fluids", diff: 1, time: "15 min",
+    tools: ["Rag or paper towel", "Funnel", "Flashlight"],
+    parts: ["Fluids that match your manual: oil, coolant type, DOT brake fluid, washer fluid"],
+    safety: ["Never open the radiator or coolant cap on a hot engine.", "Brake fluid damages paint. Wipe spills immediately."],
+    steps: ["Park on level ground. For oil, wait 5 minutes after shutting off a warm engine.", "Engine oil: pull the dipstick, wipe it, push it fully back in, pull again. The level should be between the two marks. Amber to brown is normal; milky is a problem.", "Coolant: look at the see-through reservoir with the engine cold. Level between MIN and MAX. It should be bright green, orange, pink or blue, not rusty brown.", "Brake fluid: the small reservoir near the driver's side firewall. Level between the marks. A slowly dropping level is normal as pads wear; a sudden drop means a leak.", "Power steering (if hydraulic): check the dipstick on the cap, often with HOT and COLD marks.", "Transmission: some cars have a dipstick (often checked warm and running, in Park; follow the manual). Many newer ones are sealed.", "Washer fluid: fill to the neck. Use winter fluid in freezing climates."],
+    tips: ["Monthly checks catch leaks early. Puddle colors: green/orange = coolant, brown/black = oil, red = transmission or power steering, clear and slick = brake fluid."] },
+  { id: "plugs", cat: "Engine", title: "Replace spark plugs", diff: 2, time: "45–90 min",
+    tools: ["Ratchet, extensions, spark plug socket (5/8 in or 16 mm common)", "Gap gauge", "Torque wrench", "Compressed air or shop vac", "Dielectric grease"],
+    parts: ["Spark plugs specified for your engine"],
+    safety: ["Work on a COLD engine. Aluminum head threads strip more easily when hot.", "Disconnect the battery negative if your manual recommends it."],
+    steps: ["Do one cylinder at a time so coils and plugs never get mixed up.", "Unplug the coil connector, remove its bolt, and pull the coil straight up with a slight twist.", "Blow debris out of the plug well before removing the plug. Anything that falls in goes into the cylinder.", "Loosen the old plug counterclockwise with the socket and extension and lift it out. Read it: tan/gray is healthy.", "Check the new plug's gap with a gauge. Many iridium plugs come pre-gapped; never pry on the fine center electrode.", "Start the new plug BY HAND. A short rubber hose pushed over the plug makes a great threading tool. If it binds, back out and restart: cross-threading ruins the head.", "Torque to the spec in your manual, or follow the angle on the plug box (new gasket-style plugs usually take an extra ½ to ⅔ turn past finger-tight).", "Put a dab of dielectric grease inside the coil boot, reinstall the coil and bolt, and reconnect it.", "Repeat for each cylinder, then start the engine and listen for a smooth idle."],
+    tips: ["Copper plugs: about 30k miles. Platinum and iridium: 60k–100k miles. Check your manual.", "On V6 engines the rear plugs can require removing the intake plenum. Research first."] },
+  { id: "brake-pads", cat: "Brakes", title: "Replace front brake pads", diff: 3, time: "1.5–2.5 hrs",
+    tools: ["Floor jack & 2 jack stands", "Lug wrench & torque wrench", "Socket set (slide-pin bolts are often 12–14 mm)", "C-clamp or caliper piston tool", "Brake cleaner", "High-temp brake grease", "Wire or a bungee (to hang the caliper)", "Micrometer or caliper (to measure the rotor)"],
+    parts: ["Brake pads (with new hardware clips)", "Rotors if worn below minimum thickness"],
+    safety: ["This is a safety-critical system. If you're unsure, have it checked.", "Brake dust is harmful to breathe. Don't blow it off with compressed air; use brake cleaner.", "Pump the brake pedal until it's firm BEFORE moving the car."],
+    steps: ["Loosen the lug nuts slightly, raise the car, set it on jack stands, and remove the wheel.", "Open the brake fluid reservoir cap. Pushing the piston back will raise the fluid level; siphon some out if it's near the top.", "Remove the two caliper slide-pin bolts (on the back of the caliper). Lift or pivot the caliper off the pads.", "Hang the caliper from the spring with wire. Never let it dangle by the rubber brake hose.", "Pull out the old pads and the metal anti-rattle clips.", "Measure the rotor thickness and compare to the minimum stamped on the rotor. Replace it if it's below that, deeply grooved, or warped.", "Install new clips. Put a thin film of brake grease on the clip contact points and the slide pins, never on pad friction material or rotor faces.", "Using an old pad and a C-clamp, slowly press the caliper piston fully back into its bore.", "Drop the new pads into the bracket, lower the caliper over them, and torque the slide-pin bolts to spec.", "Reinstall the wheel, lower the car, and torque the lug nuts in a star pattern.", "Pump the brake pedal until it's firm. Check the fluid level and close the cap. Repeat on the other side; always do both sides of an axle.", "Bed in the pads: in a safe empty area, make 8–10 moderate stops from about 35 mph to 5 mph without fully stopping, then drive a few minutes to cool them."],
+    tips: ["Squealing when braking is often the built-in wear indicator scraping the rotor. That means it's time.", "Grinding means metal on metal. Stop driving and replace now; rotors are likely damaged."] },
+  { id: "belt", cat: "Engine", title: "Replace the serpentine belt", diff: 2, time: "30–60 min",
+    tools: ["Serpentine belt tool or long breaker bar with the right socket", "Phone camera", "Flashlight"],
+    parts: ["Serpentine belt of the correct length (part number)"],
+    safety: ["Engine off, key out. Keep fingers clear of pulleys when you release the tensioner."],
+    steps: ["Find the belt routing diagram (often a sticker under the hood) and take a photo of the current routing anyway.", "Locate the spring-loaded tensioner pulley. Fit the tool on its bolt or square hole.", "Rotate the tensioner against its spring to slacken the belt, slip the belt off one pulley, and slowly release the tensioner.", "Remove the old belt. Spin each pulley by hand: any roughness, wobble or noise means a bad bearing to replace now.", "Compare the new belt's length and rib count to the old one.", "Route the new belt per the diagram, leaving an easy smooth pulley for last.", "Rotate the tensioner, slip the belt over the last pulley, and release it gently.", "Check that every rib is centered in every grooved pulley, then start the engine and watch it run for a minute."],
+    tips: ["Replace a belt that has cracks across the ribs, missing chunks, a glazed shiny surface, or that squeals on startup."] },
+  { id: "fuses", cat: "Electrical", title: "Find & replace a blown fuse", diff: 1, time: "10 min",
+    tools: ["Fuse puller (often clipped inside the fuse box lid)", "Flashlight", "Optional: test light or multimeter"],
+    parts: ["A fuse of the SAME amp rating and type"],
+    safety: ["Never replace a fuse with a higher-amp one, or with foil or wire. The fuse protects the wiring from overheating and catching fire."],
+    steps: ["Note what stopped working (e.g. power outlet, radio, wipers).", "Find the fuse boxes: usually one under the dash or in the kick panel, and one under the hood.", "Use the diagram on the lid or in the manual to find the fuse for that circuit.", "Pull the fuse with the puller and hold it up to the light. A blown fuse has a broken metal strip inside.", "Push in a new fuse of the same amperage (the number on top; colors are standardized).", "Test the circuit."],
+    tips: ["If the new fuse blows immediately, there's a short circuit. Find the cause instead of feeding it fuses.", "Many cars include spare fuses in the box lid."] }
+];
+
+function initMaintain() {
+  const side = $("#mSide"), doc = $("#mDoc");
+  const done = store.get("tg-maint", {});
+  const cats = [...new Set(GUIDES.map(g => g.cat))];
+  side.innerHTML = `<input type="search" id="mSearch" placeholder="Search jobs (e.g. battery)" aria-label="Search maintenance jobs"><div id="mList"></div>`;
+  const diffBars = d => `<span class="diff" title="Difficulty ${d} of 3">${[1, 2, 3].map(i => `<i class="${i <= d ? "f" : ""}"></i>`).join("")}</span>`;
+  let current = store.get("tg-maint-sel", GUIDES[0].id);
+  function list(q = "") {
+    q = q.toLowerCase();
+    $("#mList").innerHTML = cats.map(c => {
+      const items = GUIDES.filter(g => g.cat === c && (g.title + " " + g.steps.join(" ")).toLowerCase().includes(q));
+      if (!items.length) return "";
+      return `<div class="cat">${esc(c)}</div>` + items.map(g => `<button class="item ${g.id === current ? "sel" : ""}" data-id="${g.id}"><span>${esc(g.title)}</span>${diffBars(g.diff)}</button>`).join("");
+    }).join("") || '<p class="empty">No jobs match that search.</p>';
+  }
+  function show(id) {
+    current = id; store.set("tg-maint-sel", id);
+    const g = GUIDES.find(x => x.id === id);
+    const d = done[id] || [];
+    const pct = Math.round(d.length / g.steps.length * 100);
+    doc.innerHTML = `<div class="eyebrow">${esc(g.cat)}</div><h2>${esc(g.title)}</h2>
+      <div class="meta"><span>Time <b>${esc(g.time)}</b></span><span>Difficulty ${diffBars(g.diff)} <b>${["", "Beginner", "Intermediate", "Advanced"][g.diff]}</b></span><span>Progress <b id="mPct">${pct}%</b></span></div>
+      <div class="progress"><i id="mBar" style="width:${pct}%"></i></div>
+      <div class="cols">
+        <div class="box"><h4>Tools</h4><ul>${g.tools.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>
+        ${g.parts ? `<div class="box"><h4>Parts</h4><ul>${g.parts.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
+        <div class="box danger"><h4>Safety</h4><ul>${g.safety.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>
+      </div>
+      <h3>Steps</h3>
+      <ol class="check">${g.steps.map((s, i) => `<li class="${d.includes(i) ? "done" : ""}"><input type="checkbox" id="ms-${id}-${i}" data-i="${i}" ${d.includes(i) ? "checked" : ""}><label for="ms-${id}-${i}"><span>${esc(s)}</span></label></li>`).join("")}</ol>
+      <div class="ctl-row" style="margin-top:10px"><button class="btn" id="mClear">Clear checkmarks</button></div>
+      <h3>Good to know</h3><ul>${g.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+      <p class="callout">Torque values and intervals here are typical figures. Your owner's manual or a factory service manual has the exact numbers for your car.</p>`;
+    doc.querySelectorAll("ol.check input").forEach(cb => cb.onchange = () => {
+      const i = +cb.dataset.i, arr = new Set(done[id] || []);
+      cb.checked ? arr.add(i) : arr.delete(i);
+      done[id] = [...arr]; store.set("tg-maint", done);
+      cb.closest("li").classList.toggle("done", cb.checked);
+      const p = Math.round(done[id].length / g.steps.length * 100);
+      $("#mPct").textContent = p + "%"; $("#mBar").style.width = p + "%";
+    });
+    $("#mClear").onclick = () => { done[id] = []; store.set("tg-maint", done); show(id); };
+    list($("#mSearch").value);
+  }
+  side.addEventListener("click", e => { const b = e.target.closest(".item"); if (b) { show(b.dataset.id); if (innerWidth < 900) doc.scrollIntoView({ behavior: "smooth" }); } });
+  $("#mSearch").oninput = e => list(e.target.value);
+  list(); show(GUIDES.some(g => g.id === current) ? current : GUIDES[0].id);
+}
+
+/* ================================================================
+   ELECTRICAL
+   ================================================================ */
+function initElectrical() {
+  const comps = [
+    ["Battery", "Stores energy as chemical potential. A 12 V lead-acid battery is six 2.1 V cells in series. Its main job is the huge burst to crank the starter.", "Slow cranking, clicking, or a reading under 12.4 V at rest"],
+    ["Alternator", "The car's generator. Belt-driven, it makes 13.5–14.7 V while the engine runs, powering everything and recharging the battery.", "Battery light on, dim or pulsing lights, battery keeps dying"],
+    ["Starter & solenoid", "A high-torque motor (100–200+ A). The solenoid is a heavy-duty relay that also pushes the starter gear into the flywheel.", "One loud click and no crank, grinding, or a slow whine"],
+    ["Fuses & relays", "Fuses melt to protect wiring from overloads. Relays let a tiny switch current (from a button or the computer) control a big load like a fan or fuel pump.", "One circuit dead: check its fuse first; a clicking relay with no action"],
+    ["ECU / PCM", "The engine computer. It reads dozens of sensors hundreds of times per second and controls fuel injectors, spark timing, idle, and emissions devices.", "Rare. Usually the fault is a sensor or wiring. Water damage and bad grounds are common killers"],
+    ["Wiring harness & grounds", "Bundles of wires and connectors linking everything. Negative ground means the chassis is the return path back to battery negative.", "Intermittent faults, flickering, gauges acting oddly: check grounds and connectors"],
+    ["CAN bus", "Modern cars network their modules (engine, transmission, ABS, body, airbag) on a two-wire twisted pair so they can share data like speed and RPM.", "Multiple warning lights at once, \"U\" codes (network communication)"],
+    ["OBD-II port", "Standard diagnostic plug under the dash (every US car since 1996). Plug in a $20–$40 scanner to read check-engine codes and live data.", "No power at the port: check the cigarette lighter or accessory fuse"]
+  ];
+  const sensors = [
+    ["Crankshaft position", "Engine speed and piston position, for spark and injection timing", "No-start or stalling when hot; tach drops to zero"],
+    ["Camshaft position", "Which stroke each cylinder is on", "Hard starting, P0340-series codes"],
+    ["Mass airflow (MAF)", "How much air (by mass) is entering", "Hesitation, lean codes P0171. Clean only with MAF cleaner"],
+    ["Oxygen (O2) sensors", "Oxygen left in the exhaust; upstream sets fuel trim, downstream checks the cat", "Poor fuel economy, P0130–P0167 codes"],
+    ["Coolant temperature (ECT)", "Engine temperature for fuel mix and fan control", "Hard cold starts, black smoke, fans always on"],
+    ["Throttle position (TPS)", "How far the throttle is open", "Erratic idle, limp mode, poor shifting"],
+    ["Manifold pressure (MAP)", "Engine load via intake vacuum", "Rough running, poor fuel economy"],
+    ["Knock sensor", "A microphone listening for detonation; ECU retards timing", "Loss of power, P0325 code"],
+    ["Wheel speed", "Each wheel's speed for ABS and traction control", "ABS and traction lights on"],
+    ["Tire pressure (TPMS)", "Air pressure in each tire", "TPMS light; sensors' batteries last about 7–10 years"]
+  ];
+  const codes = [["P0300", "Random/multiple misfire"], ["P0301–P0304", "Misfire on cylinder 1–4 (try swapping coils)"], ["P0171 / P0174", "System too lean (vacuum leak, dirty MAF, weak fuel pump)"], ["P0420", "Catalytic converter efficiency below threshold"], ["P0128", "Coolant below thermostat temperature (thermostat stuck open)"], ["P0442 / P0455", "EVAP small / large leak (check the gas cap first)"], ["P0505", "Idle air control system"], ["P0011 / P0014", "Cam timing over-advanced/retarded (check oil level and condition)"]];
+  const tests = [
+    ["Battery resting voltage", "DC volts across battery terminals, engine off at least an hour", "12.6 V+ full · 12.4 V ≈ 75% · 12.2 V ≈ 50% · under 12.0 V discharged"],
+    ["Charging voltage", "Same, engine running, lights and blower on", "13.5–14.7 V means the alternator is working"],
+    ["Cranking voltage", "Watch the meter while a helper cranks", "Should stay above about 9.6 V"],
+    ["Ground voltage drop", "Black lead on battery −, red on engine block, while cranking", "Under about 0.3 V is healthy; more = bad ground strap"],
+    ["Parasitic draw", "Meter on 10 A, in series between battery − post and its cable; wait for modules to sleep (up to 30–60 min)", "Under about 50 mA typical; more drains the battery overnight"],
+    ["Fuse check", "Probe the two tiny test points on top of the fuse, key on", "Voltage on both sides = good; on one side only = blown"]
+  ];
+  $("#eDoc").innerHTML = `
+    <h3 style="margin-top:0">How car electricity works</h3>
+    <p>Your car runs on 12-volt DC. Every circuit is a loop: from battery positive, through a fuse, through a switch or relay, through the device (a bulb, motor, sensor), and back to battery negative through the car's metal body. That's why it's called <b>negative ground</b>. Break the loop anywhere, with a blown fuse, a bad switch or a corroded ground, and the device stops.</p>
+    <p><b>Ohm's law</b> ties it together: Volts = Amps × Ohms. A headlight drawing 5 A at 12 V has about 2.4 Ω of resistance. Corrosion adds resistance, which steals voltage from the device and turns it into heat at the bad connection.</p>
+    <h3>Starting &amp; charging circuit</h3>
+    <div class="svgwrap">${schematicSVG()}</div>
+    <p style="margin-top:8px;font-size:13.5px;color:var(--muted)">Turning the key to START sends a small current through the starter relay coil. The relay closes and energizes the solenoid, which engages the starter gear and connects the heavy battery cable directly to the starter motor. Once running, the alternator feeds current back into the battery.</p>
+    <h3>Main components</h3>
+    <div class="grid-cards">${comps.map(c => `<div class="card"><h4>${esc(c[0])}</h4><p>${esc(c[1])}</p><p class="fail"><b>Failing:</b> ${esc(c[2])}</p></div>`).join("")}</div>
+    <h3>Multimeter tests anyone can do</h3>
+    <p>A basic digital multimeter costs about $25 and finds most electrical problems. Set it to DC volts (V⎓), red lead to positive, black to negative or ground.</p>
+    <div class="tbl"><table><thead><tr><th>Test</th><th>How</th><th>Good reading</th></tr></thead><tbody>${tests.map(t => `<tr><td><b>${esc(t[0])}</b></td><td>${esc(t[1])}</td><td class="mono">${esc(t[2])}</td></tr>`).join("")}</tbody></table></div>
+    <h3>Sensors: the computer's senses</h3>
+    <div class="tbl"><table><thead><tr><th>Sensor</th><th>Measures</th><th>Symptoms when it fails</th></tr></thead><tbody>${sensors.map(t => `<tr><td><b>${esc(t[0])}</b></td><td>${esc(t[1])}</td><td>${esc(t[2])}</td></tr>`).join("")}</tbody></table></div>
+    <h3>Reading check-engine codes</h3>
+    <p>Codes are five characters. The letter is the system: <b>P</b> powertrain, <b>B</b> body, <b>C</b> chassis, <b>U</b> network. P0xxx codes are generic (same meaning on every car); P1xxx are manufacturer-specific. A code tells you which circuit or condition the computer flagged, not necessarily which part to replace.</p>
+    <div class="tbl"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody>${codes.map(c => `<tr><td class="mono">${esc(c[0])}</td><td>${esc(c[1])}</td></tr>`).join("")}</tbody></table></div>
+    <div class="callout"><b>Solid vs flashing check-engine light.</b> Solid: get it scanned soon. Flashing: an active, severe misfire that can overheat and destroy the catalytic converter. Ease off and get it looked at right away.</div>
+    <h3>Wiring repair basics</h3>
+    <ul>
+      <li>Disconnect the battery negative before cutting or splicing wires.</li>
+      <li>Match wire gauge (lower number = thicker wire). Never use thinner wire than the original.</li>
+      <li>Crimp with proper connectors and a ratcheting crimper, or solder, then seal with adhesive-lined heat-shrink. Twisting and taping corrodes and fails.</li>
+      <li>Route wires away from exhaust, sharp edges and moving parts; secure with clips or zip ties.</li>
+      <li>Hybrid and EV high-voltage cables are <b>orange</b>. Never touch or cut them; they carry hundreds of volts.</li>
+    </ul>`;
+}
+function schematicSVG() {
+  // inline colors come from theme tokens via currentColor / CSS vars
+  return `<svg viewBox="0 0 820 300" width="820" height="300" role="img" aria-label="Starting and charging circuit schematic" style="color:var(--ink)">
+  <defs><style>.w{stroke:currentColor;stroke-width:2;fill:none}.h{stroke:var(--bad);stroke-width:4;fill:none}.g{stroke:var(--muted);stroke-width:2;fill:none;stroke-dasharray:5 4}.bx{fill:var(--panel);stroke:currentColor;stroke-width:1.5}.t{fill:currentColor;font-size:12px}.s{fill:var(--muted);font-size:10.5px}.a{fill:var(--blue);font-size:11px}</style></defs>
+  <!-- battery -->
+  <rect class="bx" x="30" y="110" width="110" height="70" rx="4"/><text class="t" x="85" y="140" text-anchor="middle">BATTERY</text><text class="s" x="85" y="158" text-anchor="middle">12.6 V</text>
+  <text class="t" x="44" y="104">+</text><text class="t" x="120" y="104">−</text>
+  <!-- heavy cable + to solenoid -->
+  <path class="h" d="M50 110 V60 H600 V110"/><text class="s" x="300" y="52">heavy positive cable (to starter, 100–200+ A)</text>
+  <!-- main fuse -->
+  <path class="w" d="M50 60 V30 H190"/><rect class="bx" x="190" y="20" width="60" height="22" rx="3"/><text class="s" x="220" y="35" text-anchor="middle">FUSE</text>
+  <path class="w" d="M250 31 H300"/>
+  <!-- ignition switch -->
+  <rect class="bx" x="300" y="16" width="90" height="30" rx="3"/><text class="s" x="345" y="35" text-anchor="middle">IGN SWITCH</text>
+  <path class="w" d="M390 31 H430 V100"/><text class="a" x="436" y="70">START</text>
+  <!-- relay -->
+  <rect class="bx" x="400" y="100" width="90" height="56" rx="3"/><text class="t" x="445" y="124" text-anchor="middle">STARTER</text><text class="t" x="445" y="140" text-anchor="middle">RELAY</text>
+  <path class="w" d="M490 128 H560"/>
+  <!-- solenoid + starter -->
+  <rect class="bx" x="560" y="110" width="80" height="40" rx="3"/><text class="s" x="600" y="134" text-anchor="middle">SOLENOID</text>
+  <rect class="bx" x="560" y="150" width="80" height="60" rx="30"/><text class="t" x="600" y="185" text-anchor="middle">STARTER</text>
+  <!-- alternator -->
+  <circle class="bx" cx="250" cy="210" r="36"/><text class="t" x="250" y="207" text-anchor="middle">ALT</text><text class="s" x="250" y="222" text-anchor="middle">13.5–14.7 V</text>
+  <path class="w" d="M250 174 V140 H140"/><text class="a" x="160" y="134">B+ charge wire</text>
+  <!-- grounds -->
+  <path class="g" d="M125 180 V270 H720"/><path class="g" d="M250 246 V270"/><path class="g" d="M600 210 V270"/><path class="g" d="M445 156 V270"/>
+  <text class="s" x="660" y="262">chassis / engine ground</text>
+  <path class="w" d="M700 270 h40 M708 278 h24 M716 286 h8"/>
+  <!-- legend -->
+  <text class="s" x="680" y="120">— control (low current)</text>
+  <text class="s" x="680" y="138" style="fill:var(--bad)">— heavy current</text>
+  <text class="s" x="680" y="156">- - ground return</text>
+  </svg>`;
+}
+
+/* ================================================================
+   WELDING & FABRICATION COURSE
+   ================================================================ */
+const jointSVG = `<div class="svgwrap"><svg viewBox="0 0 720 130" width="720" height="130" role="img" aria-label="Five basic weld joints" style="color:var(--ink)">
+<style>.p{fill:var(--panel);stroke:currentColor;stroke-width:1.5}.wd{fill:var(--accent)}.l{fill:currentColor;font-size:12px;text-anchor:middle}</style>
+<g transform="translate(20,30)"><rect class="p" x="0" y="30" width="55" height="14"/><rect class="p" x="61" y="30" width="55" height="14"/><path class="wd" d="M53 30 h10 l-2 14 h-6z"/><text class="l" x="58" y="80">Butt</text></g>
+<g transform="translate(165,30)"><rect class="p" x="0" y="36" width="80" height="12"/><rect class="p" x="40" y="24" width="80" height="12"/><path class="wd" d="M40 36 l-10 0 l10 -12z"/><text class="l" x="60" y="80">Lap</text></g>
+<g transform="translate(320,20)"><rect class="p" x="0" y="50" width="110" height="12"/><rect class="p" x="49" y="0" width="12" height="50"/><path class="wd" d="M49 50 l-12 0 l12 -12z M61 50 l12 0 l-12 -12z"/><text class="l" x="55" y="90">T (fillet)</text></g>
+<g transform="translate(475,20)"><rect class="p" x="0" y="50" width="70" height="12"/><rect class="p" x="58" y="0" width="12" height="50"/><path class="wd" d="M70 50 l10 6 l-10 6z"/><text class="l" x="40" y="90">Corner</text></g>
+<g transform="translate(610,20)"><rect class="p" x="0" y="10" width="12" height="55"/><rect class="p" x="12" y="10" width="12" height="55"/><path class="wd" d="M0 10 q12 -10 24 0z"/><text class="l" x="12" y="90">Edge</text></g>
+</svg></div>`;
+
+const MODULES = [
+  { id: "safety", title: "Safety first", lessons: [
+    ["Eyes and skin", `<p>A welding arc puts out intense ultraviolet and infrared light. Seconds of exposure can cause <b>arc eye</b> (welder's flash): hours later it feels like sand in your eyes. UV also sunburns skin through thin shirts.</p>
+    <ul><li><b>Helmet:</b> auto-darkening, shade 10–13 for most MIG and stick work; 8–10 for low-amp TIG.</li><li><b>Safety glasses</b> under the helmet, always. Grinding causes more eye injuries than welding.</li><li><b>Clothing:</b> flame-resistant jacket or heavy cotton/denim/wool. Synthetics (polyester, nylon, fleece) melt and stick to skin.</li><li><b>Gloves:</b> leather welding gloves (thinner TIG gloves for dexterity). <b>Boots:</b> leather; no cuffed pants, which catch sparks.</li></ul>`],
+    ["Fumes and air", `<p>Welding fumes contain metal oxides. Work with ventilation or fume extraction and keep your head out of the plume.</p>
+    <ul><li><b>Galvanized steel</b> (zinc coating) gives off fumes that cause metal fume fever. Grind the coating off well back from the joint and wear a respirator.</li><li><b>Never weld near chlorinated brake cleaner</b> or degreaser residue. Arc UV can turn its vapor into phosgene, a deadly gas. Clean with acetone instead.</li><li>Don't weld painted, plated or oily parts without cleaning them first.</li></ul>`],
+    ["Fire", `<p>Sparks and spatter can travel 35 feet and smolder for a long time.</p>
+    <ul><li>Clear flammables (rags, cardboard, sawdust, fuel cans) from the area. Cover what you can't move with welding blankets.</li><li>Keep a fire extinguisher within reach, and watch for smoldering for at least 30 minutes after you finish.</li><li><b>Never</b> weld or cut a tank, drum or container that held fuel or chemicals unless a professional has cleaned and purged it. Vapors explode.</li></ul>`],
+    ["Welding on a car", `<ul><li>Disconnect the battery negative to protect the electronics.</li><li>Put the ground clamp close to the weld, on clean metal, so current doesn't pass through bearings, sensors or modules.</li><li>Locate fuel lines, the fuel tank, brake lines and wiring on the other side of the panel before you strike an arc.</li><li>Pull carpet, seat foam and seam sealer back from the heat zone; undercoating burns.</li></ul>
+    <p><b>Electric shock:</b> keep gloves dry, don't weld standing in water, and replace cracked cable insulation.</p>`]
+  ], quiz: [
+    ["Why should you avoid synthetic clothing when welding?", ["It traps heat", "It melts and sticks to skin", "It conducts electricity", "It blocks the helmet sensors"], 1, "Polyester and nylon melt from sparks and fuse to skin. Cotton, wool and FR fabric char instead."],
+    ["What can arc UV do to chlorinated brake cleaner vapor?", ["Nothing", "Turn it into phosgene gas", "Make the weld stronger", "Ignite it into a fireball"], 1, "This is a real, deadly hazard. Clean metal with acetone and keep chlorinated solvents away from welding."],
+    ["Before welding on a car body, you should:", ["Disconnect the battery and clamp ground near the weld", "Start the engine to power the electronics", "Ground to the bumper", "Fill the fuel tank so there are no vapors"], 0, "Disconnecting the battery protects the electronics. A close ground keeps welding current out of the car's components."]
+  ] },
+  { id: "metals", title: "Metals & prep", lessons: [
+    ["Know your metal", `<div class="tbl"><table><thead><tr><th>Metal</th><th>Where on a car</th><th>Notes</th></tr></thead><tbody>
+    <tr><td><b>Mild steel</b></td><td>Brackets, frames, body panels, exhaust</td><td>Easiest to weld; best for learning. MIG, stick, flux-core, TIG all work.</td></tr>
+    <tr><td><b>Chromoly (4130)</b></td><td>Roll cages, race chassis</td><td>Stronger, lighter tube; usually TIG with specific procedures.</td></tr>
+    <tr><td><b>Stainless</b></td><td>Exhaust, fasteners</td><td>Needs stainless filler; discolors with too much heat.</td></tr>
+    <tr><td><b>Aluminum</b></td><td>Wheels, heads, intercoolers, some bodies</td><td>Pulls heat away fast; its oxide skin melts around 3,700°F while the aluminum melts near 1,220°F. Needs AC TIG or a MIG spool gun with 100% argon.</td></tr></tbody></table></div>`],
+    ["Thickness and gauge", `<p>Sheet metal is sold by gauge, where a bigger number means thinner metal. Car body sheet is typically 18–22 gauge.</p>
+    <div class="tbl"><table><thead><tr><th>Gauge</th><th>Inches</th><th>mm</th></tr></thead><tbody><tr class="mono"><td>22</td><td>0.030</td><td>0.8</td></tr><tr class="mono"><td>18</td><td>0.048</td><td>1.2</td></tr><tr class="mono"><td>16</td><td>0.060</td><td>1.5</td></tr><tr class="mono"><td>14</td><td>0.075</td><td>1.9</td></tr><tr class="mono"><td>11</td><td>0.120</td><td>3.0</td></tr></tbody></table></div>`],
+    ["Clean metal = good welds", `<ul><li>Grind to bright, shiny metal about an inch back from the joint. Remove mill scale, rust, paint and galvanizing. A 60–80 grit flap disc is the go-to.</li><li>Wipe with acetone to remove oil. Not brake cleaner.</li><li>Clean the spot where the ground clamp goes too.</li></ul>`],
+    ["Fit-up and beveling", `<p>Good welds start with good fit-up: parts clamped tight and square with consistent gaps. On material thicker than about 1/4 in (6 mm), grind a 30–37.5° bevel on each edge of a butt joint so the weld can penetrate the full thickness.</p>`]
+  ], quiz: [
+    ["Why is aluminum harder to weld than steel?", ["It's magnetic", "Its oxide layer melts at a much higher temperature than the metal", "It can't be cleaned", "It needs CO₂ gas"], 1, "The oxide skin (~3,700°F) is far tougher than the aluminum under it (~1,220°F), so AC TIG's cleaning action or a spool gun is needed."],
+    ["What should you wipe metal down with before welding?", ["Chlorinated brake cleaner", "Acetone", "WD-40", "Water"], 1, "Acetone removes oil without the phosgene risk of chlorinated cleaners."],
+    ["Which is thicker: 11 gauge or 18 gauge?", ["11 gauge", "18 gauge", "They're the same", "Depends on the metal"], 0, "Gauge runs backwards: lower numbers are thicker. 11 ga ≈ 1/8 in; 18 ga ≈ 0.048 in."]
+  ] },
+  { id: "processes", title: "The four processes", lessons: [
+    ["MIG (GMAW)", `<p>A spool feeds solid wire through the gun; pulling the trigger feeds wire, starts the arc and flows shielding gas. For steel: <span class="mono">ER70S-6</span> wire and <span class="mono">75% argon / 25% CO₂</span> gas, on DC electrode positive (DCEP).</p><p><b>Best for:</b> beginners, auto body, brackets, general fabrication indoors. Easiest to learn.</p>`],
+    ["Flux-core (FCAW)", `<p>Same machine idea as MIG, but the wire is hollow and filled with flux that makes its own shielding. No gas bottle, and it works outdoors in wind. Self-shielded flux-core usually runs DC electrode negative (DCEN); check the wire's label.</p><p><b>Trade-offs:</b> more spatter, slag to chip off, less pretty. Many cheap 120 V welders are flux-core only.</p>`],
+    ["Stick (SMAW)", `<p>A flux-coated rod is the electrode; the coating burns to shield the weld and leaves slag. Simple, cheap machines; great on thick, rusty or outdoor work. Hard on thin sheet metal.</p>
+    <ul><li><span class="mono">6011</span>: digs deep, works on dirty metal.</li><li><span class="mono">6013</span>: smooth and easy, light work.</li><li><span class="mono">7018</span>: strong low-hydrogen structural rod; keep it dry in a rod oven.</li></ul>`],
+    ["TIG (GTAW)", `<p>A non-consumable tungsten electrode makes the arc; you feed filler rod by hand with the other hand and control heat with a foot pedal. Pure argon gas. DCEN for steel and stainless, AC for aluminum.</p><p><b>Best for:</b> the cleanest, most precise welds on thin metal, aluminum, stainless and chromoly. Slowest and hardest to learn.</p>`],
+    ["Which should I start with?", `<div class="tbl"><table><thead><tr><th></th><th>MIG</th><th>Flux-core</th><th>Stick</th><th>TIG</th></tr></thead><tbody>
+    <tr><td>Learning curve</td><td>Easy</td><td>Easy</td><td>Medium</td><td>Hard</td></tr><tr><td>Thin sheet</td><td>Good</td><td>Fair</td><td>Poor</td><td>Excellent</td></tr><tr><td>Outdoors / wind</td><td>Poor</td><td>Good</td><td>Good</td><td>Poor</td></tr><tr><td>Aluminum</td><td>Spool gun</td><td>No</td><td>Rarely</td><td>Yes (AC)</td></tr><tr><td>Cleanup</td><td>Little</td><td>Slag</td><td>Slag</td><td>None</td></tr></tbody></table></div>
+    <p class="callout">For car work, a gas-capable MIG welder is the best first machine. Add TIG later if you get into aluminum or show-quality work.</p>`]
+  ], quiz: [
+    ["Which process uses a foot pedal, hand-fed filler and 100% argon?", ["MIG", "Stick", "TIG", "Flux-core"], 2, "TIG (GTAW) separates heat (tungsten + pedal) from filler (hand-fed rod)."],
+    ["Best choice for outdoor welding in wind with no gas bottle?", ["MIG with 75/25", "TIG", "Flux-core or stick", "Oxy-acetylene brazing"], 2, "Both make their own shielding from flux, so wind can't blow it away like a gas shield."],
+    ["7018 stick rods are known as:", ["Fast-freeze dirty-metal rods", "Low-hydrogen structural rods that must stay dry", "Aluminum rods", "TIG filler"], 1, "7018 makes strong, crack-resistant welds but absorbs moisture, so it's stored in a rod oven."]
+  ] },
+  { id: "joints", title: "Joints & technique", lessons: [
+    ["The five basic joints", `${jointSVG}<p style="margin-top:8px">The <b>T-joint</b> (a fillet weld) and the <b>butt joint</b> are the ones you'll use most in car fabrication.</p>`],
+    ["Positions", `<p>Codes combine a number and a letter. 1 = flat, 2 = horizontal, 3 = vertical, 4 = overhead. F = fillet, G = groove. So <span class="mono">3F</span> is a vertical fillet weld; <span class="mono">4G</span> is an overhead groove weld. Flat is easiest; overhead is hardest. Practice in that order, because under a car you'll be doing all of them.</p>`],
+    ["Angles", `<ul><li><b>Work angle</b> (side to side): split the joint, about 45° in a T-joint and 90° on a flat butt joint.</li><li><b>Travel angle</b> (lean along the direction of travel): about 10–15°.</li><li><b>Push vs. drag:</b> "If there's slag, you drag." Drag (pull) stick and flux-core; push solid-wire MIG for better visibility and a flatter bead.</li></ul>`],
+    ["Distance and speed", `<ul><li><b>MIG stickout</b> (wire past the contact tip): about 3/8 in (10 mm). Too long gives spatter and a weak arc.</li><li><b>Stick arc length:</b> about the diameter of the rod's metal core.</li><li><b>Travel speed:</b> watch the puddle, not the arc. Keep the puddle a consistent width as you move.</li><li>Brace your hands and rest your arm on something. Steady hands make even beads.</li></ul>`]
+  ], quiz: [
+    ["What does \"3F\" mean?", ["Third fillet pass", "Vertical fillet weld", "Flat groove weld", "3 mm fillet"], 1, "3 = vertical position, F = fillet."],
+    ["\"If there's slag, you…\"", ["push", "drag", "stop", "grind"], 1, "Drag slag-producing processes (stick, flux-core) so slag doesn't get trapped ahead of the puddle."],
+    ["Typical work angle for a T-joint fillet?", ["90°", "10°", "45°", "0°"], 2, "45° splits the two plates evenly so both sides fuse."]
+  ] },
+  { id: "settings", title: "Settings & reading the bead", lessons: [
+    ["Dialing in", `<p>A rule of thumb: about <b>1 amp per 0.001 in</b> of steel thickness (1/8 in ≈ 125 A). On a MIG welder, <b>voltage</b> sets bead width and arc length; <b>wire feed speed</b> sets amperage and penetration. The chart inside the machine's door is the best starting point.</p><p>A well-tuned MIG arc sounds like <b>bacon sizzling</b>: steady and crackly. Popping and stubbing means the wire speed is too high for the voltage; a hissing, long, spattery arc means it's too low.</p>
+    <div class="box" style="margin-top:12px"><h4>MIG starting-point calculator (mild steel)</h4>
+      <div class="calc"><label for="cThk">Metal thickness<select id="cThk">
+        <option value="0.030">22 ga (0.030 in / 0.8 mm)</option><option value="0.048">18 ga (0.048 in / 1.2 mm)</option><option value="0.060">16 ga (0.060 in / 1.5 mm)</option><option value="0.075" selected>14 ga (0.075 in / 1.9 mm)</option><option value="0.125">1/8 in (3.2 mm)</option><option value="0.1875">3/16 in (4.8 mm)</option><option value="0.25">1/4 in (6.4 mm)</option></select></label>
+        <label for="cJoint">Joint<select id="cJoint"><option value="1">Butt / lap</option><option value="1.1">T-joint (fillet)</option></select></label></div>
+      <div class="out" id="cOut"></div></div>`],
+    ["Common defects", `<div class="tbl"><table><thead><tr><th>Defect</th><th>Looks like</th><th>Usual cause → fix</th></tr></thead><tbody>
+    <tr><td><b>Porosity</b></td><td>Pinholes and bubbles</td><td>No gas, wind, empty bottle or dirty metal → check flow (20–25 CFH), block drafts, clean</td></tr>
+    <tr><td><b>Undercut</b></td><td>A groove melted along the edge</td><td>Too hot, too fast or wrong angle → lower heat, slow down, pause at the edges</td></tr>
+    <tr><td><b>Cold lap / lack of fusion</b></td><td>Tall, ropey bead sitting on top</td><td>Too cold or too fast → more heat, slower travel, aim at the joint root</td></tr>
+    <tr><td><b>Burn-through</b></td><td>Holes in thin metal</td><td>Too much heat → lower settings, stitch or tack weld, use a copper backer</td></tr>
+    <tr><td><b>Excess spatter</b></td><td>BBs stuck around the weld</td><td>Settings off, long stickout, dirty metal, CO₂-only gas</td></tr>
+    <tr><td><b>Cracks</b></td><td>Lines in or beside the bead</td><td>Fast cooling, contamination, wrong filler → preheat thick parts, clean, let cool slowly</td></tr></tbody></table></div>`],
+    ["What a good weld looks like", `<ul><li>Even width and evenly spaced ripples.</li><li>Flat to slightly convex, blending smoothly into both pieces at the edges (the toes).</li><li>On a butt joint, a visible line of penetration on the back side.</li><li>Little spatter, no holes, no undercut.</li></ul><p>A pretty bead on top can still lack fusion inside. That's why you'll cut and bend-test practice coupons (Module 7).</p>`]
+  ], quiz: [
+    ["Rule-of-thumb amperage for 1/8 in mild steel?", ["About 35 A", "About 125 A", "About 300 A", "About 12 A"], 1, "Roughly 1 A per thousandth of an inch: 0.125 in → ~125 A."],
+    ["Pinholes all through your bead most likely mean:", ["Too much wire speed", "Shielding gas problem or dirty metal", "Wrong joint type", "Ground clamp too close"], 1, "Porosity = contamination; gas flow, wind or dirt are the usual suspects."],
+    ["On a MIG welder, wire feed speed mainly controls:", ["Gas flow", "Amperage and penetration", "Bead color", "Duty cycle"], 1, "More wire speed = more amperage. Voltage shapes the arc and bead width."]
+  ] },
+  { id: "fab", title: "Fabrication basics", lessons: [
+    ["Measure and mark", `<ul><li>Tape measure, combination square and speed square, a scribe or soapstone for marking.</li><li>Center-punch every hole location so the drill bit doesn't wander.</li><li>Measure twice, cut once, and cut on the waste side of the line.</li></ul>`],
+    ["Cutting", `<div class="tbl"><table><thead><tr><th>Tool</th><th>Good for</th><th>Watch out</th></tr></thead><tbody>
+    <tr><td><b>Angle grinder + cutoff wheel</b></td><td>Everything, anywhere</td><td>Keep the guard on; stand out of the wheel's plane; never use a cutoff disc for side grinding</td></tr>
+    <tr><td><b>Chop saw / cold saw</b></td><td>Square cuts on tube and bar</td><td>Clamp the work; let the blade stop before lifting</td></tr>
+    <tr><td><b>Horizontal bandsaw</b></td><td>Clean, accurate cuts unattended</td><td>Correct blade tooth count for wall thickness</td></tr>
+    <tr><td><b>Plasma cutter</b></td><td>Fast cuts, curves, any conductive metal</td><td>Needs compressed air; eye protection (shade 5–8 typical)</td></tr>
+    <tr><td><b>Air saw / nibbler</b></td><td>Cutting out rusted body panels</td><td>Check what's behind the panel first</td></tr></tbody></table></div>`],
+    ["Drilling and bending", `<ul><li>Drill a small pilot hole first, then step up. Use cutting oil, slower speed for bigger bits, and clamp the part. Never hold it by hand.</li><li>Step bits make clean holes in sheet metal.</li><li>Bend sheet in a brake, or clamp between angle iron in a vise. Bend tube with a proper bender; heat-and-hammer kinks tube.</li></ul>`],
+    ["Controlling distortion", `<p>Heat makes metal expand; as the weld cools it shrinks and pulls the parts out of shape. Thin car panels warp very easily.</p>
+    <ul><li>Tack weld every few inches before running full beads, alternating sides.</li><li>On sheet metal, lay short tacks and move around the panel (skip welding), letting each cool before connecting them. Don't run long continuous beads.</li><li>Clamp to a flat table or fixture.</li><li>Let it cool naturally. Quenching with water can make steel brittle and crack.</li><li>Check square by measuring the diagonals, before and after welding.</li></ul>`]
+  ], quiz: [
+    ["Best way to keep a thin patch panel from warping?", ["One long continuous bead", "Spaced tacks moved around the panel, cooling between", "Quench each weld with water", "Turn the heat all the way up"], 1, "Spreading heat in small doses keeps shrinkage even."],
+    ["Before drilling a hole in steel you should:", ["Heat the spot", "Center-punch the location", "Weld a nut on", "Paint it"], 1, "A punch mark gives the bit a starting dimple so it doesn't walk."],
+    ["How do you check if a welded frame is square?", ["Eyeball it", "Compare corner-to-corner diagonal measurements", "Use a level only", "Weigh each side"], 1, "Equal diagonals mean a true rectangle."]
+  ] },
+  { id: "projects", title: "Car projects & next steps", lessons: [
+    ["Practice path", `<ol><li>Run straight beads on flat 1/8 in plate until they look consistent.</li><li>Weld butt and T-joints in the flat position.</li><li>Move to horizontal, vertical, then overhead.</li><li>Test your work: clamp a T-joint in a vise and hammer it over, or cut a butt joint and bend it. A good weld bends the metal before it breaks the weld.</li><li>Practice on thin sheet (18–20 ga) for body work.</li></ol>`],
+    ["Beginner projects", `<ul><li><b>Welding cart</b> for your machine and gas bottle: the classic first project.</li><li><b>Battery tray or hold-down bracket.</b></li><li><b>Exhaust hanger</b> or simple exhaust tip.</li><li><b>Floor-pan patch</b> on a junk panel before trying a real car.</li><li><b>Engine stand or parts shelf</b> from square tube.</li></ul>`],
+    ["Rust repair workflow", `<ol><li>Cut out all the rot back to clean, solid metal.</li><li>Make a cardboard template of the hole and transfer it to new steel of the same gauge.</li><li>Cut the patch so it butts up with a small, even gap (about the wire's thickness).</li><li>Clamp it with panel clamps, tack the corners, then skip-weld tacks until the seam is closed.</li><li>Grind flush, being careful not to overheat or thin the metal.</li><li>Prime with weld-through or epoxy primer and seam-seal the inside.</li></ol>`],
+    ["Know your limits", `<p>Suspension, steering, frame, roll cage and tow-hitch welds hold lives. Don't weld these until you've had hands-on training and can pass a bend test consistently, and have them inspected. Many race organizations require specific procedures for cages.</p><p><b>Where to go next:</b> community college welding programs offer cheap hands-on time and AWS (American Welding Society) certification testing. Local makerspaces often have welders and classes too.</p>`]
+  ], quiz: [
+    ["A good practice weld in a bend test should:", ["Snap cleanly at the weld", "Bend the metal before the weld breaks", "Glow red", "Show slag inside"], 1, "If the weld fails before the base metal, it lacked fusion or penetration."],
+    ["First step of a rust repair?", ["Grind the paint shiny and weld over it", "Cut out the rot back to solid metal", "Fill with body filler", "Weld a patch over the top"], 1, "Welding to rusty, thin metal just blows holes; you need clean, solid edges."],
+    ["Which welds should wait until you're trained and tested?", ["Welding cart", "Steering, suspension and frame", "Practice coupons", "Shelf brackets"], 1, "Safety-critical structures need proven skill and inspection."]
+  ] }
+];
+
+function initWeld() {
+  const side = $("#wSide"), doc = $("#wDoc");
+  const passed = store.get("tg-weld", {});
+  let cur = store.get("tg-weld-sel", MODULES[0].id);
+  function renderSide() {
+    const n = MODULES.filter(m => passed[m.id]).length;
+    side.innerHTML = `<div class="eyebrow">Course progress</div><div class="mono" style="font-size:13px">${n} of ${MODULES.length} modules passed</div><div class="progress"><i style="width:${n / MODULES.length * 100}%"></i></div>` +
+      MODULES.map((m, i) => `<button class="item ${m.id === cur ? "sel" : ""}" data-id="${m.id}"><span><span class="mono" style="color:var(--muted);font-size:12px">${i + 1}.</span> ${esc(m.title)}</span>${passed[m.id] ? '<span class="badge">PASSED</span>' : ""}</button>`).join("");
+  }
+  function show(id) {
+    cur = id; store.set("tg-weld-sel", id);
+    const idx = MODULES.findIndex(m => m.id === id), m = MODULES[idx];
+    doc.innerHTML = `<div class="eyebrow">Module ${idx + 1} of ${MODULES.length}</div><h2>${esc(m.title)}</h2>` +
+      m.lessons.map(([h, body]) => `<h3>${esc(h)}</h3>${body}`).join("") +
+      `<div class="quiz"><h3 style="margin-top:0">Module quiz</h3><p style="color:var(--muted);font-size:14px">Answer all ${m.quiz.length} correctly to pass. You can retry.</p>` +
+      m.quiz.map((q, qi) => `<div class="q" data-q="${qi}"><p>${qi + 1}. ${esc(q[0])}</p><div class="opts">${q[1].map((a, ai) => `<button class="opt" data-a="${ai}">${esc(a)}</button>`).join("")}</div><div class="why" hidden></div></div>`).join("") +
+      `<div class="ctl-row" style="margin-top:14px"><button class="btn" id="qRetry">Retry quiz</button>${idx < MODULES.length - 1 ? '<button class="btn primary" id="qNext">Next module ▶</button>' : ""}</div><div id="qResult" class="callout" hidden></div></div>`;
+    const right = new Set();
+    doc.querySelectorAll(".q").forEach(qel => {
+      const q = m.quiz[+qel.dataset.q];
+      qel.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+        const a = +b.dataset.a;
+        qel.querySelectorAll(".opt").forEach(o => { o.disabled = true; if (+o.dataset.a === q[2]) o.classList.add("right"); });
+        if (a !== q[2]) b.classList.add("wrong"); else right.add(qel.dataset.q);
+        const w = qel.querySelector(".why"); w.hidden = false; w.textContent = (a === q[2] ? "Correct. " : "Not quite. ") + q[3];
+        const answered = doc.querySelectorAll(".q .opt:disabled").length / 4;
+        if (answered === m.quiz.length) {
+          const r = $("#qResult"); r.hidden = false;
+          if (right.size === m.quiz.length) { passed[id] = true; store.set("tg-weld", passed); r.innerHTML = "<b>Module passed.</b> Nice work."; renderSide(); }
+          else r.innerHTML = `<b>${right.size} of ${m.quiz.length} correct.</b> Review the lesson and retry.`;
+        }
+      });
+    });
+    $("#qRetry").onclick = () => show(id);
+    const nx = $("#qNext"); if (nx) nx.onclick = () => { show(MODULES[idx + 1].id); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    const thk = $("#cThk");
+    if (thk) {
+      const calc = () => {
+        const t = +thk.value, j = +$("#cJoint").value, amps = Math.round(t * 1000 * j);
+        const wire = t <= 0.048 ? '0.023 in (0.6 mm)' : t <= 0.1875 ? '0.030 in (0.8 mm)' : '0.035 in (0.9 mm)';
+        const note = t <= 0.048 ? "Thin sheet: use tacks and skip welding, not continuous beads." : t >= 0.25 ? "Near the limit of 120 V machines; a 240 V welder and multiple passes or a bevel are better." : "Good range for most 120 V and 240 V MIG welders.";
+        $("#cOut").innerHTML = `≈ <b>${amps} A</b> · wire ${wire} · gas 75/25 at 20–25 CFH<br><span style="color:var(--muted)">${note} Fine-tune from your machine's door chart.</span>`;
+      };
+      thk.onchange = calc; $("#cJoint").onchange = calc; calc();
+    }
+    renderSide();
+  }
+  side.addEventListener("click", e => { const b = e.target.closest(".item"); if (b) { show(b.dataset.id); if (innerWidth < 900) doc.scrollIntoView({ behavior: "smooth" }); } });
+  show(MODULES.some(m => m.id === cur) ? cur : MODULES[0].id);
+}
+
+/* ================================================================
+   ROUTING & LOOP
+   ================================================================ */
+const VIEWS = ["explore", "build", "maintain", "electrical", "weld"];
+const inited = {};
+const view3d = {};
+let active3d = null;
+function route() {
+  const h = location.hash.slice(1), name = VIEWS.includes(h) ? h : "explore";
+  VIEWS.forEach(v => { $("#v-" + v).hidden = v !== name; });
+  document.querySelectorAll("#nav a").forEach(a => {
+    if (a.getAttribute("href") === "#" + name) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
+  tip.hidden = true;
+  if (!inited[name]) {
+    inited[name] = true;
+    if (name === "explore" || name === "build") {
+      const host = name === "explore" ? $("#engStage") : $("#carStage");
+      if (!HAS3D) host.insertAdjacentHTML("beforeend", '<div class="err">The 3D library could not load. Check your connection and reload the page.</div>');
+      else { try { view3d[name] = name === "explore" ? initEngine() : initBuild(); } catch (e) { console.error(e); host.insertAdjacentHTML("beforeend", '<div class="err">3D view could not start (WebGL may be disabled in this browser).</div>'); } }
+    }
+    if (name === "maintain") initMaintain();
+    if (name === "electrical") initElectrical();
+    if (name === "weld") initWeld();
+  }
+  active3d = view3d[name] || null;
+  if (active3d) requestAnimationFrame(() => { const e = new Event("resize"); window.dispatchEvent(e); });
+}
+window.addEventListener("hashchange", route);
+function loop(now) {
+  requestAnimationFrame(loop);
+  const v = active3d; if (!v) return;
+  if (v.tick) v.tick(now);
+  v.controls.update(); v.renderer.render(v.scene, v.camera);
+}
+// theme changes -> repaint 3D backgrounds
+const themeUpdate = () => viewers.forEach(v => v.applyTheme());
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", themeUpdate); } catch (e) {}
+new MutationObserver(themeUpdate).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+route();
+requestAnimationFrame(loop);
+</script>
